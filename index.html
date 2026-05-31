@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>重症医学科护士交班系统</title>
+<style>
+:root {
+  --primary: #1a73e8;
+  --primary-light: #e8f0fe;
+  --danger: #d93025;
+  --danger-light: #fce8e6;
+  --success: #1e8e3e;
+  --success-light: #e6f4ea;
+  --warning: #f9ab00;
+  --warning-light: #fef7e0;
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --border: #dadce0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.15);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shift-day: #1a73e8;
+  --shift-night1: #7b1fa2;
+  --shift-night2: #0d47a1;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh;
+}
+.header {
+  background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white;
+  padding: 16px 24px; display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(26,115,232,0.3); position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.header-icon {
+  width: 40px; height: 40px; background: rgba(255,255,255,0.2);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px;
+}
+.header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+.header-sub { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+.header-date {
+  background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px;
+  font-size: 13px; backdrop-filter: blur(4px);
+}
+.tabs {
+  background: var(--card); display: flex; border-bottom: 1px solid var(--border);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.tab {
+  flex: 1; min-width: 90px; padding: 12px 8px; text-align: center;
+  font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer;
+  border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.tab:hover { color: var(--primary); background: var(--primary-light); }
+.tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.tab-icon { font-size: 20px; }
+.content { max-width: 900px; margin: 0 auto; padding: 16px; }
+.page { display: none; }
+.page.active { display: block; }
+.card {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 20px; margin-bottom: 16px;
+}
+.card-title {
+  font-size: 16px; font-weight: 600; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-title-icon { font-size: 20px; }
+.shift-tabs {
+  display: flex; gap: 0; border-radius: var(--radius-sm); overflow: hidden;
+  border: 1px solid var(--border); margin-bottom: 16px;
+}
+.shift-tab {
+  flex: 1; padding: 10px 16px; text-align: center; font-size: 14px;
+  font-weight: 500; cursor: pointer; transition: all 0.2s; background: var(--card);
+  color: var(--text-secondary); border: none;
+}
+.shift-tab:not(:last-child) { border-right: 1px solid var(--border); }
+.shift-tab.active-day { background: var(--shift-day); color: white; font-weight: 600; }
+.shift-tab.active-night1 { background: var(--shift-night1); color: white; font-weight: 600; }
+.shift-tab.active-night2 { background: var(--shift-night2); color: white; font-weight: 600; }
+.shift-tab:hover:not([class*="active"]) { background: var(--primary-light); }
+.category-tabs {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+}
+.category-tab {
+  padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text-secondary); white-space: nowrap;
+}
+.category-tab:hover { border-color: var(--primary); color: var(--primary); }
+.category-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+.category-add {
+  padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer;
+  border: 1.5px dashed var(--border); background: transparent; color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.category-add:hover { border-color: var(--primary); color: var(--primary); }
+.date-nav {
+  display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px;
+}
+.date-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--card); cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 16px; transition: all 0.2s;
+}
+.date-btn:hover { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.date-display { font-size: 18px; font-weight: 600; min-width: 200px; text-align: center; }
+.date-weekday { font-size: 13px; color: var(--text-secondary); font-weight: 400; }
+.personnel-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.person-tag {
+  padding: 6px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+  font-size: 13px; cursor: pointer; transition: all 0.2s; user-select: none;
+}
+.person-tag:hover { border-color: var(--primary); color: var(--primary); }
+.person-tag.selected { background: var(--primary); color: white; border-color: var(--primary); }
+.missing-entry {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 14px; margin-bottom: 12px; background: #fafbfc; position: relative;
+}
+.missing-entry-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.missing-entry-num {
+  font-size: 12px; font-weight: 700; color: var(--danger);
+  background: var(--danger-light); padding: 2px 10px; border-radius: 10px;
+}
+.remove-missing {
+  background: none; border: none; color: var(--text-secondary); cursor: pointer;
+  font-size: 18px; padding: 4px; border-radius: 50%; transition: all 0.2s;
+}
+.remove-missing:hover { color: var(--danger); background: var(--danger-light); }
+
+
+.medicine-row { cursor: pointer; }
+.medicine-row:hover { background: rgba(255,255,255,0.03); }
+.medicine-row td { border-bottom: none !important; }
+.detail-row td { padding: 0 !important; border-bottom: 1px solid var(--border) !important; }
+.detail-row-inner { padding: 8px 12px 12px 50px; background: rgba(255,255,255,0.02); }
+.detail-header { font-size: 12px; color: var(--danger); font-weight: 600; margin-bottom: 6px; }
+.detail-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 6px; margin-bottom: 3px; background: var(--danger-light); font-size: 12px; }
+.detail-item.resolved { background: var(--success-light); opacity: 0.7; }
+.detail-item.resolved .detail-text { text-decoration: line-through; }
+.detail-item .detail-text { flex: 1; line-height: 1.5; }
+.detail-item .detail-btn { font-size: 11px; padding: 2px 10px; border: none; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.detail-item .resolve-btn { background: var(--success); color: #fff; }
+.detail-item .unresolve-btn { background: var(--text-secondary); color: #fff; }
+.detail-item .delete-detail-btn { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+.expand-hint { font-size: 10px; color: var(--text-secondary); margin-left: 4px; }
+
+
+.missing-fields { display: grid; gap: 10px; }
+.missing-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.form-select, .form-input, .form-textarea {
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 14px; font-family: inherit; transition: border-color 0.2s; background: var(--card);
+}
+.form-select:focus, .form-input:focus, .form-textarea:focus {
+  outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+.btn {
+  padding: 10px 20px; border-radius: var(--radius-sm); border: none; font-size: 14px;
+  font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex;
+  align-items: center; gap: 6px; font-family: inherit;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { background: #1557b0; box-shadow: var(--shadow-lg); }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: #b3261e; }
+.btn-outline { background: transparent; border: 1.5px solid var(--primary); color: var(--primary); }
+.btn-outline:hover { background: var(--primary-light); }
+.btn-sm { padding: 6px 12px; font-size: 13px; }
+.btn-block { width: 100%; justify-content: center; }
+.medicine-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.medicine-table th {
+  background: #f1f3f4; padding: 10px 12px; text-align: left; font-weight: 600;
+  font-size: 12px; color: var(--text-secondary); text-transform: uppercase;
+  letter-spacing: 0.5px; border-bottom: 2px solid var(--border); position: sticky; top: 0;
+}
+.medicine-table td { padding: 10px 12px; border-bottom: 1px solid #f1f3f4; vertical-align: middle; }
+.medicine-table tr:hover td { background: var(--primary-light); }
+.medicine-table tr.deficit td { background: var(--danger-light); }
+.med-name { font-weight: 500; color: var(--text); }
+.med-spec { font-size: 12px; color: var(--text-secondary); }
+.med-base { font-weight: 700; font-size: 15px; display: inline-flex; align-items: center; gap: 2px; }
+.med-unit { font-size: 11px; font-weight: 400; color: var(--text-secondary); }
+.deficit-badge { background: var(--danger); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.ok-badge { background: var(--success); color: white; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.info-btn {
+  background: var(--primary-light); color: var(--primary); border: none;
+  padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  font-weight: 500; transition: all 0.2s;
+}
+.info-btn:hover { background: var(--primary); color: white; }
+.search-bar { position: relative; margin-bottom: 16px; }
+.search-bar input {
+  width: 100%; padding: 10px 14px 10px 38px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 14px; font-family: inherit; transition: border-color 0.2s;
+}
+.search-bar input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-secondary); }
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center;
+  padding: 20px; backdrop-filter: blur(2px);
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--card); border-radius: var(--radius); max-width: 600px; width: 100%;
+  max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-header {
+  padding: 20px 20px 12px; display: flex; justify-content: space-between; align-items: flex-start;
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--card); z-index: 1;
+}
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.modal-close {
+  background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);
+  padding: 4px; border-radius: 50%; transition: all 0.2s; line-height: 1;
+}
+.modal-close:hover { background: #f1f3f4; color: var(--text); }
+.modal-body { padding: 20px; }
+.modal-footer {
+  padding: 12px 20px 20px; display: flex; gap: 8px; justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+.info-section { margin-bottom: 16px; }
+.info-section-title {
+  font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.info-section-content {
+  font-size: 13px; color: var(--text); line-height: 1.8;
+  background: #f8f9fa; padding: 12px; border-radius: var(--radius-sm);
+  border-left: 3px solid var(--primary);
+}
+.warning-box {
+  background: var(--warning-light); border-left: 3px solid var(--warning);
+  padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12px; color: #7a5700; margin-top: 12px;
+}
+/* Edit mode for manual sections */
+.edit-field {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 13px; font-family: inherit; line-height: 1.8; min-height: 60px; resize: vertical;
+  background: white;
+}
+.edit-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+.edit-section-title {
+  font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+/* History inline */
+.history-group { margin-bottom: 20px; }
+.history-group-date {
+  font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 2px solid var(--primary); display: flex; align-items: center; gap: 8px;
+}
+.history-shift-card {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px;
+  overflow: hidden; transition: all 0.2s;
+}
+.history-shift-card:hover { border-color: var(--primary); }
+.history-shift-header {
+  padding: 10px 14px; font-weight: 600; font-size: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.history-shift-header.day { background: #e8f0fe; color: var(--shift-day); }
+.history-shift-header.night1 { background: #f3e5f5; color: var(--shift-night1); }
+.history-shift-header.night2 { background: #e3f2fd; color: var(--shift-night2); }
+.history-shift-body { padding: 12px 14px; font-size: 13px; }
+.history-detail-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.history-detail-label { min-width: 70px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
+.history-missing-item { padding: 6px 10px; background: var(--danger-light); border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+.history-missing-reason { color: var(--text-secondary); font-size: 12px; }
+.shift-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; color: white; }
+.shift-badge.day { background: var(--shift-day); }
+.shift-badge.night1 { background: var(--shift-night1); }
+.shift-badge.night2 { background: var(--shift-night2); }
+.history-delete-btn {
+  float: right; background: none; border: none; color: var(--text-secondary); cursor: pointer;
+  font-size: 13px; padding: 2px 8px; border-radius: 4px; transition: all 0.2s;
+}
+.history-delete-btn:hover { color: var(--danger); background: var(--danger-light); }
+/* Manual item */
+.manual-item {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px;
+  margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.manual-item:hover { border-color: var(--primary); box-shadow: var(--shadow); }
+.manual-item-left { flex: 1; }
+.manual-item-name { font-weight: 500; font-size: 15px; }
+.manual-item-spec { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.manual-item-cat {
+  font-size: 11px; color: var(--text-secondary); background: #f1f3f4;
+  padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block;
+}
+.manual-item-actions { display: flex; gap: 6px; align-items: center; }
+.manual-item-move {
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  padding: 2px 8px; font-size: 11px; cursor: pointer; color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.manual-item-move:hover { border-color: var(--primary); color: var(--primary); }
+/* Upload area */
+.upload-area {
+  border: 2px dashed var(--border); border-radius: var(--radius); padding: 30px 20px;
+  text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 16px;
+  background: #fafbfc;
+}
+.upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
+.upload-area-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-area-text { font-size: 14px; color: var(--text-secondary); }
+.upload-area-hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+/* Cat manage */
+.cat-manage-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f1f3f4;
+}
+.cat-manage-input {
+  flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px;
+}
+.toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: #323232; color: white; padding: 12px 24px; border-radius: 8px;
+  font-size: 14px; z-index: 300; transition: transform 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+/* Move dropdown */
+.move-dropdown {
+  position: absolute; background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); z-index: 50;
+  min-width: 150px; padding: 4px 0; display: none;
+}
+.move-dropdown.show { display: block; }
+.move-dropdown-item {
+  padding: 8px 14px; font-size: 13px; cursor: pointer; transition: all 0.15s;
+}
+.move-dropdown-item:hover { background: var(--primary-light); color: var(--primary); }
+/* Sync styles */
+.sync-section { margin-bottom: 20px; }
+.sync-section-title { font-weight: 600; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.sync-section-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5; }
+.sync-btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.sync-btn {
+  flex: 1; min-width: 120px; padding: 12px 16px; border: 2px solid var(--border);
+  border-radius: var(--radius-sm); background: white; cursor: pointer; text-align: center;
+  transition: all 0.2s; font-size: 13px;
+}
+.sync-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+.sync-btn-icon { font-size: 24px; margin-bottom: 4px; }
+.sync-btn-label { font-weight: 600; }
+.sync-btn-hint { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.sync-form-group { margin-bottom: 12px; }
+.sync-form-label { font-size: 13px; font-weight: 500; margin-bottom: 4px; display: block; }
+.sync-form-input {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 13px; transition: border-color 0.2s;
+}
+.sync-form-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+.sync-status { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
+.sync-status.info { background: #e8f0fe; color: #1a73e8; }
+.sync-status.success { background: #e6f4ea; color: #1e8e3e; }
+.sync-status.error { background: #fce8e6; color: #d93025; }
+.sync-status.warning { background: #fef7e0; color: #e37400; }
+.sync-divider { border-top: 1px solid var(--border); margin: 16px 0; padding-top: 16px; }
+.sync-last-time { font-size: 11px; color: var(--text-secondary); margin-top: 6px; }
+.sync-guide { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+.sync-guide b { color: var(--text); }
+@media print {
+  .header,.tabs,.btn,.search-bar,.no-print,.shift-tabs,.category-tabs,.category-add,.upload-area { display: none !important; }
+  .content { padding: 0; max-width: 100%; }
+  .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .page { display: block !important; }
+  .page:not(.active) { display: none !important; }
+}
+@media (max-width: 600px) {
+  .header h1 { font-size: 15px; }
+  .content { padding: 12px; }
+  .card { padding: 14px; }
+  .missing-row { grid-template-columns: 1fr; }
+  .date-display { font-size: 15px; min-width: 160px; }
+  .medicine-table { font-size: 12px; }
+  .medicine-table th, .medicine-table td { padding: 8px 6px; }
+  .shift-tab { padding: 8px 10px; font-size: 13px; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+
+</head>
+<body>
+<!-- Login Screen -->
+<div id="loginScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#1a73e8,#0d47a1);display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:white;border-radius:16px;padding:40px 36px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:12px;">💊</div>
+      <h2 style="font-size:20px;font-weight:600;color:#202124;">重症医学科护士交班系统</h2>
+      <div style="font-size:13px;color:#5f6368;margin-top:4px;">请登录以继续</div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px;">用户名</label>
+      <input id="loginUser" type="text" placeholder="请输入用户名" style="width:100%;padding:10px 14px;border:1px solid #dadce0;border-radius:8px;font-size:14px;transition:border-color 0.2s;" onfocus="this.style.borderColor='#1a73e8'" onblur="this.style.borderColor='#dadce0'">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px;">密码</label>
+      <input id="loginPass" type="password" placeholder="请输入密码" style="width:100%;padding:10px 14px;border:1px solid #dadce0;border-radius:8px;font-size:14px;transition:border-color 0.2s;" onfocus="this.style.borderColor='#1a73e8'" onblur="this.style.borderColor='#dadce0'" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="loginError" style="display:none;background:#fce8e6;color:#d93025;padding:8px 12px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
+    <button onclick="doLogin()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1a73e8,#0d47a1);color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">登 录</button>
+    <div style="margin-top:16px;text-align:center;font-size:12px;color:#5f6368;">首次使用请联系管理员获取账号</div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="header-icon">💊</div>
+    <div><h1>重症医学科护士交班系统</h1><div class="header-sub">病区备用药品管理</div></div>
+  </div>
+  <div class="header-right">
+    <button onclick="openSyncModal()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:6px 12px;border-radius:16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:4px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">☁️ 同步</button>
+    <div class="header-date" id="headerDate"></div>
+    <div id="userBadge" style="background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:16px;font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="toggleUserMenu()">
+      <span id="userBadgeName"></span>
+      <span id="userBadgeRole" style="font-size:10px;background:rgba(255,255,255,0.3);padding:1px 6px;border-radius:8px;"></span>
+    </div>
+    <div id="userMenu" style="display:none;position:absolute;top:56px;right:16px;background:white;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:200;min-width:140px;overflow:hidden;">
+      <div onclick="openUserManager()" id="menuUserMgr" style="padding:10px 16px;font-size:13px;color:#202124;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='white'">👥 用户管理</div>
+      <div onclick="openSupabaseSetup()" id="menuSupabase" style="padding:10px 16px;font-size:13px;color:#202124;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='white'">🌐 在线部署</div>
+      <div onclick="changePassword()" style="padding:10px 16px;font-size:13px;color:#202124;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#f1f3f4'" onmouseout="this.style.background='white'">🔑 修改密码</div>
+      <div style="border-top:1px solid #e8eaed;"></div>
+      <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
+    </div>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.10</span>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab active" data-page="shift" onclick="switchPage('shift')"><span class="tab-icon">📋</span>交班登记</div>
+  <div class="tab" data-page="medicine" onclick="switchPage('medicine')"><span class="tab-icon">💉</span>药品基数</div>
+  <div class="tab" data-page="history" onclick="switchPage('history')"><span class="tab-icon">📅</span>交班记录</div>
+  <div class="tab" data-page="official" onclick="switchPage('official')"><span class="tab-icon">📖</span>药品说明书</div>
+</div>
+<div class="content">
+  <!-- Shift Registration -->
+  <div class="page active" id="page-shift">
+    <div class="card"><div class="date-nav">
+      <button class="date-btn" onclick="changeDate(-1)">◀</button>
+      <div class="date-display" id="shiftDate"></div>
+      <button class="date-btn" onclick="changeDate(1)">▶</button>
+    </div></div>
+    <div class="card" style="padding:12px 16px;"><div class="shift-tabs">
+      <button class="shift-tab active-day" data-shift="白班" onclick="switchShift('白班')">☀️ 白班</button>
+      <button class="shift-tab" data-shift="前夜" onclick="switchShift('前夜')">🌙 前夜</button>
+      <button class="shift-tab" data-shift="后夜" onclick="switchShift('后夜')">🌑 后夜</button>
+    </div></div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">👩‍⚕️</span>交班人员</div><div class="personnel-grid" id="personnelGrid"></div></div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">👨‍⚕️</span>接班人员</div><div class="personnel-grid" id="personnelGrid2"></div></div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">⚠️</span>缺失药品登记<span style="flex:1"></span><button class="btn btn-outline btn-sm" onclick="addMissingEntry()">＋ 添加缺失药品</button></div>
+      <div id="missingList"></div>
+      <div id="missingEmpty" class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">暂无缺失药品，点击上方按钮添加</div></div>
+    </div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">📝</span>备注</div><textarea class="form-textarea" id="shiftNote" placeholder="填写交班备注信息..."></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="saveShift()" style="margin-bottom:16px;padding:14px;">💾 保存交班记录</button>
+  </div>
+  <!-- Medicine Base -->
+  <div class="page" id="page-medicine">
+    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表</div>
+      <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="medSearch" placeholder="搜索药品名称..." oninput="filterMedicines()"></div>
+      <div style="overflow-x:auto;"><table class="medicine-table" id="medicineTable"><thead><tr>
+        <th>序号</th><th>药品名称</th><th>规格</th><th>包装</th><th>单位</th><th>基数</th><th>状态</th><th>说明书</th>
+      </tr></thead><tbody id="medicineBody"></tbody></table></div>
+    </div>
+  </div>
+  <!-- History -->
+  <div class="page" id="page-history">
+    <div class="card"><div class="card-title"><span class="card-title-icon">📅</span>交班记录</div>
+      <div id="historyList"></div>
+      <div id="historyEmpty" class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">暂无交班记录</div></div>
+    </div>
+  </div>
+  <!-- Drug Manuals with Categories -->
+  <div class="page" id="page-official">
+    <div class="card">
+      <div class="card-title"><span class="card-title-icon">📖</span>药品说明书<span style="flex:1"></span>
+        <button id="bulkAddBtn" class="btn btn-outline btn-sm" onclick="showBulkUpload()" style="margin-right:6px;">📋 批量添加</button>
+        <button id="catManageBtn" class="btn btn-outline btn-sm" onclick="showCategoryManager()">⚙️ 管理分类</button>
+      </div>
+      <div class="category-tabs" id="categoryTabs"></div>
+      <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="officialSearch" placeholder="搜索药品名称..." oninput="filterOfficialList()"></div>
+      <div id="officialList"></div>
+    </div>
+  </div>
+</div>
+<!-- Modal: Medicine Info / Edit -->
+<div class="modal-overlay" id="infoModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modalTitle"></div><div class="modal-subtitle" id="modalSubtitle"></div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter" style="display:none;"></div>
+  </div>
+</div>
+<!-- Modal: Category Manager -->
+<div class="modal-overlay" id="catModal">
+  <div class="modal" style="max-width:450px;">
+    <div class="modal-header"><div><div class="modal-title">管理药品种类分类</div></div><button class="modal-close" onclick="closeCatModal()">✕</button></div>
+    <div class="modal-body" id="catModalBody"></div>
+  </div>
+</div>
+<!-- Modal: Bulk Upload -->
+<div class="modal-overlay" id="bulkUploadModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><div><div class="modal-title">📋 批量添加药品说明书</div><div class="modal-subtitle">粘贴药品说明书文本，系统自动识别并添加到"未分类"</div></div><button class="modal-close" onclick="closeBulkUpload()">✕</button></div>
+    <div class="modal-body" id="bulkUploadBody"></div>
+  </div>
+</div>
+<!-- Modal: Cloud Sync -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header"><div><div class="modal-title">☁️ 数据同步</div><div class="modal-subtitle">在电脑和手机之间同步交班数据</div></div><button class="modal-close" onclick="closeSyncModal()">✕</button></div>
+    <div class="modal-body" id="syncModalBody">
+      <div id="syncContent"></div>
+    </div>
+  </div>
+</div>
+<!-- Modal: User Manager -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><div><div class="modal-title">👥 用户管理</div></div><button class="modal-close" onclick="closeUserModal()">✕</button></div>
+    <div class="modal-body" id="userModalBody"></div>
+  </div>
+</div>
+<!-- Modal: Supabase Setup -->
+<div class="modal-overlay" id="supabaseModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header"><div><div class="modal-title">🌐 在线部署配置</div><div class="modal-subtitle">配置Supabase云数据库，实现多人实时在线</div></div><button class="modal-close" onclick="closeSupabaseModal()">✕</button></div>
+    <div class="modal-body" id="supabaseModalBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== Data =====
+
+// ===== User & Permission System =====
+const DEFAULT_ADMIN = { username:'admin', password:'admin123', role:'admin', displayName:'管理员', createdAt: new Date().toISOString() };
+let currentUser = null;
+
+function loadUsers() {
+  try { const d = localStorage.getItem('nurse_users'); if (d) return JSON.parse(d); } catch(e) {}
+  const users = [DEFAULT_ADMIN];
+  localStorage.setItem('nurse_users', JSON.stringify(users));
+  return users;
+}
+function saveUsers(users) { localStorage.setItem('nurse_users', JSON.stringify(users)); }
+function isAdmin() { return currentUser && currentUser.role === 'admin'; }
+function requireAdmin(msg) {
+  if (!isAdmin()) { showToast(msg || '⚠️ 需要管理员权限'); return false; }
+  return true;
+}
+
+function doLogin() {
+  const username = document.getElementById('loginUser').value.trim();
+  const password = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  if (!username || !password) { errEl.style.display='block'; errEl.textContent='请输入用户名和密码'; return; }
+  const users = loadUsers();
+  const user = users.find(u => u.username === username && u.password === password);
+  if (!user) { errEl.style.display='block'; errEl.textContent='用户名或密码错误'; return; }
+  currentUser = { username: user.username, role: user.role, displayName: user.displayName };
+  localStorage.setItem('nurse_current_user', JSON.stringify(currentUser));
+  document.getElementById('loginScreen').style.display = 'none';
+  updateUserBadge();
+  // Initialize cloud sync before loading data
+  CloudSync.init().then(() => {
+    updateUserBadge();
+    applyPermissions();
+    init();
+  });
+}
+
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('nurse_current_user');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('userMenu').style.display = 'none';
+}
+
+function tryAutoLogin() {
+  // Always show login screen, no auto-login
+  document.getElementById('loginScreen').style.display = 'flex';
+  // Pre-fill username if previously logged in
+  try {
+    const saved = localStorage.getItem('nurse_current_user');
+    if (saved) {
+      const u = JSON.parse(saved);
+      document.getElementById('loginUser').value = u.username || '';
+    }
+  } catch(e) {}
+}
+
+function updateUserBadge() {
+  if (!currentUser) return;
+  document.getElementById('userBadgeName').textContent = currentUser.displayName;
+  document.getElementById('userBadgeRole').textContent = isAdmin() ? '管理员' : '护士';
+  document.getElementById('menuUserMgr').style.display = isAdmin() ? 'flex' : 'none';
+  document.getElementById('menuSupabase').style.display = isAdmin() ? 'flex' : 'none';
+  // Update cloud indicator
+  const ci = document.getElementById('cloudIndicator');
+  if (ci) {
+    if (CloudSync.enabled) { ci.textContent = '☁️'; ci.title = '云同步已连接'; ci.style.opacity = '1'; }
+    else { ci.textContent = '📴'; ci.title = '离线模式'; ci.style.opacity = '0.5'; }
+  }
+}
+
+function toggleUserMenu() {
+  const menu = document.getElementById('userMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+// Close menu on outside click
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('userMenu');
+  const badge = document.getElementById('userBadge');
+  if (menu && badge && !badge.contains(e.target) && !menu.contains(e.target)) menu.style.display = 'none';
+});
+
+function applyPermissions() {
+  // Admin-only elements: hide for normal users
+  const adminIds = ['bulkAddBtn', 'catManageBtn'];
+  adminIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAdmin() ? '' : 'none';
+  });
+  // Sync button in header (admin only)
+  const syncBtn = document.querySelector('.header-right button[onclick="openSyncModal()"]');
+  if (syncBtn) syncBtn.style.display = isAdmin() ? '' : 'none';
+  // Re-render lists that have admin-only buttons
+  renderOfficialList();
+  renderHistory();
+}
+
+// ===== User Manager =====
+function openUserManager() {
+  document.getElementById('userMenu').style.display = 'none';
+  if (!requireAdmin('需要管理员权限')) return;
+  renderUserList();
+  document.getElementById('userModal').classList.add('show');
+}
+function closeUserModal() { document.getElementById('userModal').classList.remove('show'); }
+document.getElementById('userModal').addEventListener('click', function(e) { if (e.target === this) closeUserModal(); });
+
+function renderUserList() {
+  const users = loadUsers();
+  document.getElementById('userModalBody').innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:600;">用户列表</div>
+        <button class="btn btn-primary btn-sm" onclick="showAddUserForm()">＋ 添加用户</button>
+      </div>
+      <div id="addUserForm" style="display:none;margin-bottom:12px;padding:14px;background:#f8f9fa;border-radius:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:2px;">用户名</label><input id="newUserName" class="sync-form-input" placeholder="登录账号" style="font-size:13px;"></div>
+          <div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:2px;">显示名</label><input id="newDisplayName" class="sync-form-input" placeholder="如：杨浩" style="font-size:13px;"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:2px;">密码</label><input id="newUserPass" class="sync-form-input" type="password" placeholder="设置密码" style="font-size:13px;"></div>
+          <div><label style="font-size:12px;font-weight:500;display:block;margin-bottom:2px;">角色</label>
+            <select id="newUserRole" class="sync-form-input" style="font-size:13px;">
+              <option value="nurse">普通护士</option>
+              <option value="admin">管理员</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="addUser()">确认添加</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('addUserForm').style.display='none'">取消</button>
+        </div>
+      </div>
+      ${users.map(u => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e8eaed;border-radius:8px;margin-bottom:6px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:${u.role==='admin'?'#e8f0fe':'#f1f3f4'};display:flex;align-items:center;justify-content:center;font-size:16px;">${u.role==='admin'?'👑':'👩‍⚕️'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:500;font-size:14px;">${escHtml(u.displayName)} <span style="font-size:11px;color:#5f6368;">(@${escHtml(u.username)})</span></div>
+            <div style="font-size:12px;color:#5f6368;">${u.role==='admin'?'管理员 - 全部权限':'普通护士 - 仅交班登记'}</div>
+          </div>
+          ${u.username !== 'admin' ? `<button style="background:none;border:1px solid #d93025;color:#d93025;padding:4px 10px;border-radius:4px;font-size:12px;cursor:pointer;" onclick="deleteUser('${u.username}')">删除</button>` : '<span style="font-size:11px;color:#5f6368;">默认账户</span>'}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function showAddUserForm() { document.getElementById('addUserForm').style.display = 'block'; document.getElementById('newUserName').focus(); }
+
+function addUser() {
+  const username = document.getElementById('newUserName').value.trim();
+  const displayName = document.getElementById('newDisplayName').value.trim();
+  const password = document.getElementById('newUserPass').value;
+  const role = document.getElementById('newUserRole').value;
+  if (!username || !displayName || !password) { showToast('请填写完整信息'); return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) { showToast('用户名只能用英文、数字和下划线'); return; }
+  const users = loadUsers();
+  if (users.find(u => u.username === username)) { showToast('用户名已存在'); return; }
+  users.push({ username, password, role, displayName, createdAt: new Date().toISOString() });
+  saveUsers(users);
+  showToast('✅ 用户已添加');
+  renderUserList();
+}
+
+function deleteUser(username) {
+  if (!confirm('确定删除用户 ' + username + ' 吗？')) return;
+  const users = loadUsers().filter(u => u.username !== username);
+  saveUsers(users);
+  showToast('用户已删除');
+  renderUserList();
+}
+
+function changePassword() {
+  document.getElementById('userMenu').style.display = 'none';
+  const oldPass = prompt('请输入当前密码：');
+  if (oldPass === null) return;
+  const users = loadUsers();
+  const user = users.find(u => u.username === currentUser.username);
+  if (!user || user.password !== oldPass) { showToast('❌ 当前密码错误'); return; }
+  const newPass = prompt('请输入新密码：');
+  if (!newPass) { showToast('密码不能为空'); return; }
+  const newPass2 = prompt('请再次输入新密码：');
+  if (newPass !== newPass2) { showToast('❌ 两次密码不一致'); return; }
+  user.password = newPass;
+  saveUsers(users);
+  showToast('✅ 密码已修改');
+}
+
+// ===== Permission Guards =====
+function guardAdmin(action) {
+  if (!isAdmin()) { showToast('⚠️ 此操作需要管理员权限'); return false; }
+  return true;
+}
+
+const MEDICINES = [
+{ id:1, name:"10%氯化钾注射液", spec:"10ml:1g", pkg:"60支/盒", unit:"支", base:20 },
+  { id:2, name:"50%葡萄糖注射液", spec:"20ml:10g", pkg:"5支/盒", unit:"支", base:5 },
+  { id:3, name:"盐酸利多卡因胶浆", spec:"20g:0.4g/支", pkg:"1支/盒", unit:"支", base:5 },
+  { id:4, name:"浓氯化钠注射液", spec:"10ml:1g", pkg:"50支/盒", unit:"支", base:10 },
+  { id:5, name:"盐酸异丙肾上腺素注射液", spec:"2ml:1mg", pkg:"2支/盒", unit:"支", base:2 },
+  { id:6, name:"盐酸多巴酚丁胺注射液", spec:"2ml:20mg", pkg:"10支/盒", unit:"支", base:5 },
+  { id:7, name:"盐酸肾上腺素注射液", spec:"1ml:1mg", pkg:"2支/盒", unit:"支", base:10 },
+  { id:8, name:"重酒石酸去甲肾上腺素注射液", spec:"1ml:2mg", pkg:"10支/盒", unit:"支", base:20 },
+  { id:9, name:"注射用硝普钠", spec:"50mg", pkg:"6支/盒", unit:"支", base:2 },
+  { id:10, name:"重酒石酸间羟胺注射液", spec:"1ml:10mg", pkg:"5支/盒", unit:"支", base:10 },
+  { id:11, name:"盐酸多巴胺注射液", spec:"2ml:20mg", pkg:"10支/盒", unit:"支", base:20 },
+  { id:12, name:"肝素钠注射液", spec:"2ml:12500U", pkg:"10支/盒", unit:"支", base:5 },
+  { id:13, name:"去乙酰毛花苷注射液", spec:"2ml:0.4mg", pkg:"2支/盒", unit:"支", base:5 },
+  { id:14, name:"盐酸胺碘酮注射液", spec:"3ml:150mg", pkg:"6支/盒", unit:"支", base:5 },
+  { id:15, name:"盐酸右美托咪定注射液", spec:"2ml:0.2mg", pkg:"5支/小盒", unit:"支", base:5 },
+  { id:16, name:"盐酸艾司洛尔注射液", spec:"10ml:0.1g", pkg:"5支/盒", unit:"支", base:10 },
+  { id:17, name:"盐酸异丙嗪注射液", spec:"2ml:50mg", pkg:"10支/盒", unit:"支", base:5 },
+  { id:18, name:"葡萄糖酸钙注射液", spec:"10ml:1g", pkg:"5支/盒", unit:"支", base:10 },
+  { id:19, name:"盐酸利多卡因注射液", spec:"5ml:0.1g", pkg:"5支/盒", unit:"支", base:10 },
+  { id:20, name:"米力农注射液", spec:"5ml:5mg", pkg:"2支/盒", unit:"支", base:5 },
+  { id:21, name:"盐酸甲氧氯普胺注射液", spec:"1ml:10mg", pkg:"10支/盒", unit:"支", base:5 },
+  { id:22, name:"硫酸鱼精蛋白注射液", spec:"5ml:50mg", pkg:"5支/盒", unit:"支", base:2 },
+  { id:23, name:"注射用美罗培南（美平）", spec:"0.5g", pkg:"10瓶/盒", unit:"瓶", base:4 },
+  { id:24, name:"硝酸异山梨酯注射液", spec:"10ml:10mg", pkg:"10支/盒", unit:"支", base:5 },
+  { id:25, name:"氨甲环酸注射液", spec:"5ml:0.5g", pkg:"6支/盒", unit:"支", base:5 },
+  { id:26, name:"地塞米松磷酸钠注射液", spec:"1ml:5mg", pkg:"10支/盒", unit:"支", base:5 },
+  { id:27, name:"门冬氨酸钾镁注射液（潘南金）", spec:"10ml", pkg:"5支/盒", unit:"支", base:5 },
+  { id:28, name:"呋塞米注射液", spec:"2ml:20mg", pkg:"10支/盒", unit:"支", base:10 },
+  { id:29, name:"硝酸甘油注射液", spec:"1ml:5mg", pkg:"10支/盒", unit:"支", base:10 },
+  { id:30, name:"注射用氢化可的松琥珀酸钠", spec:"50mg", pkg:"5支/盒", unit:"支", base:5 },
+  { id:31, name:"注射用甲泼尼龙琥珀酸钠", spec:"40mg", pkg:"10瓶/盒", unit:"支", base:5 },
+  { id:32, name:"盐酸尼卡地平注射液（佩尔）", spec:"10ml:10mg", pkg:"10支/盒", unit:"支", base:10 },
+  { id:33, name:"甘露醇注射液", spec:"250ml:50g", pkg:"1瓶", unit:"瓶", base:5 },
+  { id:34, name:"氟马西尼注射液", spec:"5ml:0.5mg", pkg:"5支/盒", unit:"支", base:5 },
+  { id:35, name:"乳酸钠林格注射液", spec:"500ml", pkg:"1袋", unit:"袋", base:5 },
+  { id:36, name:"5%碳酸氢钠注射液", spec:"250ml:12.5g", pkg:"1袋", unit:"袋", base:5 },
+  { id:37, name:"聚明胶肽注射液（菲克雪浓）", spec:"500ml:3.2g", pkg:"1瓶", unit:"瓶", base:1 },
+  { id:38, name:"钠钾镁钙葡萄糖注射液（乐加）", spec:"500ml", pkg:"1袋", unit:"袋", base:5 },
+  { id:39, name:"注射用苯磺酸瑞马唑仑（锐马）", spec:"25mg", pkg:"5支/盒", unit:"支", base:10 },
+  { id:40, name:"环泊酚注射液（思舒宁）", spec:"20ml:50mg", pkg:"5支/盒", unit:"支", base:10 },
+  { id:41, name:"喷他佐辛注射液", spec:"1ml:30mg", pkg:"5支/盒", unit:"支", base:5 },
+  { id:42, name:"胰岛素注射液", spec:"10ml:400IU", pkg:"2支/盒", unit:"瓶", base:5 },
+];
+const PERSONNEL = [
+"杨浩","王邦涛","杨蜜","胡威","戴永恩","李东林","谢小燕","陈思雨",
+  "张露","卢苗","周一平","陈炜华","陈世龙","李茜","周欢","许佳斗",
+  "吴伟","李多","刘潘攀","王雨茹","王廷","张团龙","代茜玲","熊寰",
+  "李艳","唐燕艳","莫雨晴","王微一","卢小丽","郑妍妍"
+];
+const MISSING_REASONS = [
+"患者使用", "已过期报废", "补充未到", "损坏/破损", "借出未还", "其他"
+];
+const MED_MANUALS = {
+1: { name:"10%氯化钾注射液", alias:"KCl", category:"电解质补充药",
+    indications:"预防和治疗各种原因引起的低钾血症，如进食不足、呕吐、严重腹泻、应用排钾利尿药等。洋地黄中毒引起频发多源性早搏或快速心律失常。",
+    usage:"静脉滴注：将10%氯化钾注射液10~15ml加入5%葡萄糖注射液500ml中滴注。补钾剂量、浓度和速度根据临床病情和血钾浓度及心电图缺钾图形改善而定。钾浓度不超过3.4g/L(45mmol/L)，补钾速度不超过0.75g/h(10mmol/h)，每日补钾量为3~4.5g(40~60mmol)。",
+    contraindications:"高钾血症患者禁用。急性肾功能不全、慢性肾功能不全者禁用。",
+    adverse:"静脉滴注浓度较高、速度较快或静脉较细时，易刺激静脉内膜引起疼痛，甚至发生静脉炎。高钾血症：表现为乏力、肌张力降低、心律失常等。",
+    precautions:"1.本品不得直接静脉注射，未经稀释不得静脉滴注。2.补钾期间需密切随访血钾浓度及心电图。3.老年人肾脏清除K⁺功能下降，应用钾盐时较易发生高钾血症。"
+  },
+  2: { name:"50%葡萄糖注射液", alias:"高渗葡萄糖", category:"营养药",
+    indications:"(1)补充能量和体液；用于各种原因引起的进食不足或大量体液丢失(如呕吐、腹泻等)，全静脉内营养，饥饿性酮症；(2)低糖血症；(3)高钾血症；(4)高渗溶液用作组织脱水剂；(5)配制腹膜透析液；(6)药物稀释剂；(7)静脉法葡萄糖耐量试验；(8)供配制GIK(极化液)液用。",
+    usage:"(1)补充热能：一般可予25%葡萄糖注射液静脉注射，并同时补充体液。(2)全静脉营养疗法：葡萄糖可配制为25%～50%的不同浓度，必要时加入胰岛素，每5～10g葡萄糖加入正规胰岛素1单位，一般选用大静脉滴注。(3)低糖血症：重者可先予用50%葡萄糖注射液20～40ml静脉推注。(4)饥饿性酮症：严重者应用5%～25%葡萄糖注射液静脉滴注，每日100g葡萄糖可基本控制病情。(5)失水：等渗性失水给予5%葡萄糖注射液静脉滴注。(6)高钾血症：应用10%～25%注射液，每2～4g葡萄糖加1单位正规胰岛素输注，可降低血清钾浓度。(7)组织脱水：高渗溶液(一般采用50%葡萄糖注射液)快速静脉注射20～50ml。但作用短暂。",
+    contraindications:"(1)糖尿病酮症酸中毒未控制者；(2)高血糖非酮症性高渗状态。",
+    adverse:"(1)静脉炎：发生于高渗葡萄糖注射液滴注时。如用大静脉滴注，静脉炎发生率下降。(2)高浓度葡萄糖注射液外渗可致局部肿痛。(3)反应性低血糖：合并使用胰岛素过量，原有低血糖倾向及全静脉营养疗法突然停止时易发生。(4)高血糖非酮症昏迷：多见于糖尿病、应激状态、使用大量的糖皮质激素、尿毒症腹膜透析患者。(5)电解质紊乱：长期单纯补给葡萄糖时易出现低钾、低钠及低磷血症。(6)原有心功能不全者。(7)高钾血症：Ⅰ型糖尿病患者应用高浓度葡萄糖时偶有发生。",
+    precautions:"(1)分娩时注射过多葡萄糖可刺激胎儿胰岛素分泌，发生产后婴儿低血糖。(2)下列情况慎用：①胃大部分切除患者作口服糖耐量试验时易出现倾倒综合征及低血糖反应，应改为静脉葡萄糖试验；②周期性麻痹、低钾血症患者；③应激状态或应用糖皮质激素时容易诱发高血糖；④水肿及严重心、肾功能不全、肝硬化腹水者，易致水潴留，应控制输液量；心功能不全者尤应控制滴速。(3)补液过快、过多，可致心悸、心律失常，甚至急性左心衰竭。"
+  },
+  3: { name:"盐酸利多卡因胶浆", alias:"", category:"局部麻醉药",
+    indications:"1.表面麻醉（口腔、气管、尿道等）；2.内镜检查前润滑麻醉。",
+    usage:"2%胶浆：涂抹于检查部位，每次用量根据需要而定，一般5~10ml。",
+    contraindications:"对利多卡因过敏者禁用。阿-斯综合征、预激综合征、严重心传导阻滞者禁用。",
+    adverse:"偶见头晕、恶心、过敏反应。大剂量可致中枢神经毒性反应。",
+    precautions:"1.用药前询问过敏史。2.勿过量使用。"
+  },
+  4: { name:"浓氯化钠注射液", alias:"高渗盐水", category:"电解质补充药",
+    indications:"1.各种原因所致的水中毒及严重低钠血症；2.低氯性代谢性碱中毒。",
+    usage:"静脉滴注：根据临床需要确定剂量，一般每次10~20ml缓慢滴注。",
+    contraindications:"心力衰竭、肺水肿、脑水肿、颅内压增高、高血压患者慎用或禁用。",
+    adverse:"输注过快可致高钠血症、高氯性酸中毒。外渗可致组织坏死。",
+    precautions:"1.严格监测血钠浓度。2.缓慢滴注，不可快速大量输注。"
+  },
+  5: { name:"盐酸异丙肾上腺素注射液", alias:"异丙肾", category:"β受体激动药",
+    indications:"1.心搏骤停；2.房室传导阻滞；3.支气管哮喘急性发作；4.休克（心源性休克及感染性休克）。",
+    usage:"静脉滴注：0.5~1mg加入5%葡萄糖注射液200~300ml中缓慢滴注，根据心率调整滴速。",
+    contraindications:"心绞痛、心肌梗死、甲状腺功能亢进、嗜铬细胞瘤患者禁用。",
+    adverse:"心悸、心动过速、头晕、恶心、出汗。可诱发心律失常和心绞痛。",
+    precautions:"1.使用时需心电监护。2.不宜与肾上腺素同用。3.须监测心率、血压。"
+  },
+  6: { name:"盐酸多巴酚丁胺注射液", alias:"多巴酚丁胺", category:"β₁受体激动药",
+    indications:"1.急性心力衰竭；2.心源性休克；3.心脏手术后低排血量综合征。",
+    usage:"静脉滴注：2.5~10μg/kg/min，加入5%葡萄糖注射液中稀释后滴注，根据病情调整剂量。",
+    contraindications:"梗阻性肥厚型心肌病禁用。",
+    adverse:"心悸、恶心、头痛、胸痛、气短。可致心动过速和血压变化。",
+    precautions:"1.用药期间应持续心电、血压监测。2.不宜与碱性药物配伍。3.连续使用可产生耐受性。"
+  },
+  7: { name:"盐酸肾上腺素注射液", alias:"肾上腺素/副肾", category:"α、β受体激动药",
+    indications:"主要适用于因支气管痉挛所致严重呼吸困难，可迅速缓解药物等引起的过敏性休克，亦可用于延长浸润麻醉用药的作用时间。各种原因引起的心脏骤停进行心肺复苏的主要抢救用药。",
+    usage:"常用量：皮下注射，1次0.25-1mg；极量：皮下注射，1次1mg。临床用于：1.抢救过敏性休克：本品具有兴奋心肌、升高血压、松弛支气管等作用，故可缓解过敏性休克的心跳微弱、血压下降、呼吸困难等症状。2.抢救心脏骤停：可用于麻醉和手术中的意外、药物中毒或心脏传导阻滞等原因引起的心脏骤停，以0.25-0.5mg以10ml生理盐水稀释后静脉(或心内注射)，同时进行心脏按压、人工呼吸、纠正酸中毒。对电击引起的心脏骤停，亦可用本品配合电除颤仪或利多卡因等进行抢救。3.治疗支气管哮喘：效果迅速但不持久。皮下注射0.25-0.5mg，3-5分钟见效，但仅能维持1小时。必要时每4小时可重复注射一次。4.与局麻药合用：加少量(约1：200000-500000)于局麻药中(如普鲁卡因)，在混合药液中，本品浓度为2-5μg/ml，总量不超过0.3mg，可减少局麻药的吸收而延长其药效，并减少其毒副作用，亦可减少手术部位的出血。5.制止鼻粘膜和齿龈出血：将浸有1:20000-1:1000溶液的纱布填塞出血处。6.治疗荨麻疹、枯草热、血清反应等：皮下注射1：1000溶液0.2-0.5ml，必要时再以上述剂量注射一次。",
+    contraindications:"高血压、器质性心脏病、冠状动脉疾病、糖尿病、甲状腺功能亢进、洋地黄中毒、外伤性及出血性休克等慎用。",
+    adverse:"心悸、头痛、血压升高、震颤、焦虑。剂量过大可致心律失常甚至心室颤动。",
+    precautions:"1.严格掌握剂量。2.避光保存。3.反复使用同一部位可致组织坏死。"
+  },
+  8: { name:"重酒石酸去甲肾上腺素注射液", alias:"去甲肾上腺素/正肾", category:"α受体激动药",
+    indications:"1.急性心肌梗死、体外循环等引起的低血压；2.血容量不足所致的低血压；3.椎管内阻滞时的低血压；4.心跳骤停复苏后的血压维持。",
+    usage:"静脉滴注：2~4mg加入5%葡萄糖注射液500ml中滴注，根据血压调整滴速。常用剂量0.1~0.5μg/kg/min。",
+    contraindications:"可卡因中毒、心动过速、高血压患者禁用。",
+    adverse:"1.静脉滴注时间过长或药液外渗可致局部缺血坏死；2.急性肾功能衰竭；3.心律失常。",
+    precautions:"1.必须稀释后静脉滴注，禁止直接静脉注射。2.严密监测血压。3.药液外渗应立即处理（酚妥拉明局部浸润注射）。"
+  },
+  9: { name:"注射用硝普钠", alias:"硝普钠", category:"血管扩张药",
+    indications:"1.高血压急症（高血压危象）；2.急性心力衰竭；3.急性肺水肿；4.外科手术中控制性降压。",
+    usage:"静脉滴注：50mg加入5%葡萄糖注射液500ml中（避光），开始0.5μg/kg/min，根据血压调整，一般不超过3μg/kg/min。",
+    contraindications:"代偿性高血压如动静脉分流或主动脉缩窄者禁用。",
+    adverse:"1.低血压；2.氰化物中毒（长期大剂量使用）；3.恶心、呕吐、肌痉挛。",
+    precautions:"1.必须避光使用（输液瓶和管道用避光纸包裹）。2.持续监测血压。3.连续使用超过72小时须监测血氰化物浓度。"
+  },
+  10: { name:"重酒石酸间羟胺注射液", alias:"阿拉明", category:"α受体激动药",
+    indications:"1.各种休克及手术时低血压；2.心肌梗死性休克；3.室上性心动过速。",
+    usage:"肌肉注射：5~10mg/次；静脉滴注：15~100mg加入5%葡萄糖注射液500ml中，根据血压调整。",
+    contraindications:"高血压、甲状腺功能亢进、充血性心力衰竭、糖尿病患者慎用。",
+    adverse:"1.血压骤升；2.心律失常；3.静脉给药外溢可致组织坏死。",
+    precautions:"1.不宜与碱性药物配伍。2.短期内反复使用可产生快速耐受性。"
+  },
+  11: { name:"盐酸多巴胺注射液", alias:"多巴胺", category:"多巴胺受体激动药",
+    indications:"1.各种类型休克（感染性、心源性、出血性休克）；2.补充血容量后仍不能维持血压者；3.急性肾功能衰竭。",
+    usage:"静脉滴注：20mg加入5%葡萄糖注射液250ml中，从小剂量开始(2~5μg/kg/min)，根据血压和尿量调整。",
+    contraindications:"嗜铬细胞瘤患者禁用。快速型心律失常者慎用。",
+    adverse:"1.恶心、呕吐；2.心动过速、心律失常；3.外渗可致组织坏死。",
+    precautions:"1.使用前须纠正血容量不足。2.剂量个体化。3.外渗处理同去甲肾上腺素。"
+  },
+  12: { name:"肝素钠注射液", alias:"肝素", category:"抗凝血药",
+    indications:"1.血栓形成或栓塞性疾病的预防和治疗；2.弥散性血管内凝血(DIC)；3.血液透析、体外循环的抗凝。",
+    usage:"静脉滴注：首次5000U，以后每小时500~1000U持续泵入；皮下注射：5000U/次，每8~12小时一次。",
+    contraindications:"1.对肝素过敏者；2.出血倾向及凝血功能障碍者；3.严重高血压、溃疡病、脑出血等禁用。",
+    adverse:"1.出血（最常见）；2.血小板减少(HIT)；3.过敏反应；4.骨质疏松（长期使用）。",
+    precautions:"1.用药期间定期监测APTT。2.注意观察有无出血征象。3.不宜与阿司匹林等合用。"
+  },
+  13: { name:"去乙酰毛花苷注射液", alias:"西地兰", category:"强心苷类",
+    indications:"1.急性心力衰竭；2.慢性心力衰竭急性加重；3.控制心房颤动、心房扑动的心室率。",
+    usage:"静脉注射：首剂0.4~0.6mg，加入5%葡萄糖注射液20ml缓慢注射(>5分钟)，2~4小时后可再给0.2~0.4mg，总量不超过1.2mg/日。",
+    contraindications:"1.强心苷中毒者；2.室性心动过速、心室颤动；3.梗阻性肥厚型心肌病；4.预激综合征伴心房颤动/扑动。",
+    adverse:"1.心律失常（室早二联律最常见）；2.恶心呕吐；3.视觉异常（黄视、绿视）。",
+    precautions:"1.使用前需询问近期是否使用洋地黄类药物。2.静脉注射需缓慢，同时心电监护。3.低钾血症增加中毒风险。"
+  },
+  14: { name:"盐酸胺碘酮注射液", alias:"胺碘酮/可达龙", category:"抗心律失常药（Ⅲ类）",
+    indications:"1.室性心律失常（室速/室颤）；2.房性心律失常（房颤/房扑）；3.预激综合征伴心动过速。",
+    usage:"静脉注射：首剂150mg，稀释后10分钟以上注完；维持：1mg/min持续6小时，之后0.5mg/min持续18小时。",
+    contraindications:"1.窦性心动过缓、窦房阻滞；2.房室传导阻滞；3.甲状腺功能异常；4.碘过敏。",
+    adverse:"1.心动过缓、房室传导阻滞；2.QT间期延长；3.甲状腺功能异常；4.肺纤维化（长期使用）；5.静脉炎。",
+    precautions:"1.使用时需心电监护，监测QT间期。2.不宜与β受体阻滞剂合用。3.注意监测甲状腺功能。"
+  },
+  15: { name:"盐酸右美托咪定注射液", alias:"右美", category:"α₂受体激动药/镇静药",
+    indications:"1.重症监护期间气管插管和机械通气患者的镇静；2.手术前/中/后的镇静；3.有创检查的镇静。",
+    usage:"静脉输注：负荷剂量0.5~1μg/kg，10分钟内输注完毕；维持0.2~0.7μg/kg/h。",
+    contraindications:"对右美托咪定过敏者禁用。",
+    adverse:"1.低血压；2.心动过缓；3.窦性停搏（罕见）；4.口干。",
+    precautions:"1.使用时需监测血压和心率。2.老年人和肝功能不全者减量。3.不应与其它镇静药合用。"
+  },
+  16: { name:"盐酸艾司洛尔注射液", alias:"艾司洛尔", category:"超短效β₁受体阻滞药",
+    indications:"1.心房颤动/扑动时心室率的快速控制；2.窦性心动过速；3.围手术期心动过速和高血压。",
+    usage:"静脉注射：负荷剂量0.5mg/kg/min，1分钟后维持0.05mg/kg/min；可每4分钟递增0.05mg/kg/min，最大0.2mg/kg/min。",
+    contraindications:"1.窦性心动过缓；2.房室传导阻滞；3.心源性休克；4.失代偿性心力衰竭。",
+    adverse:"1.低血压；2.心动过缓；3.注射部位炎症。",
+    precautions:"1.持续心电和血压监护。2.注意输注部位更换以防静脉炎。3.作用持续时间短(9分钟)，停药后作用迅速消失。"
+  },
+  17: { name:"盐酸异丙嗪注射液", alias:"非那根", category:"第一代H₁受体拮抗药",
+    indications:"1.过敏性疾病；2.晕动症；3.麻醉术前给药；4.镇静催眠；5.止吐。",
+    usage:"肌肉注射：25~50mg/次；静脉注射：25~50mg/次，稀释后缓慢注射。",
+    contraindications:"1.对异丙嗪过敏者；2.2岁以下儿童禁用；3.严重肝肾功能不全者慎用。",
+    adverse:"1.嗜睡、乏力；2.口干；3.锥体外系反应（儿童多见）；4.注射部位疼痛。",
+    precautions:"1.可增强中枢抑制药的作用。2.静脉注射宜缓慢。3.驾驶员及高空作业者慎用。"
+  },
+  18: { name:"葡萄糖酸钙注射液", alias:"钙剂", category:"矿物质补充药",
+    indications:"1.低钙血症；2.过敏性疾病；3.镁中毒的解救；4.氟中毒的解救；5.心脏复苏。",
+    usage:"静脉注射：10%溶液10~20ml，稀释后缓慢注射(速度不超过2ml/min)。",
+    contraindications:"1.高钙血症；2.正在使用洋地黄类药物者禁用静脉注射。",
+    adverse:"1.静脉注射过快可致心律失常；2.注射部位疼痛；3.外渗可致组织坏死。",
+    precautions:"1.严禁与洋地黄类药物同用。2.注射必须缓慢。3.不可皮下或肌肉注射。"
+  },
+  19: { name:"盐酸利多卡因注射液", alias:"利多卡因", category:"局部麻醉药/抗心律失常药（Ⅰb类）",
+    indications:"1.局部麻醉；2.室性心律失常（急性心肌梗死引起的室早、室速）。",
+    usage:"抗心律失常：静脉注射1~1.5mg/kg，2~3分钟注完；维持1~4mg/min静脉滴注。局麻：根据手术需要。",
+    contraindications:"1.对利多卡因过敏者；2.严重房室传导阻滞；3.阿-斯综合征。",
+    adverse:"1.中枢神经系统：头晕、嗜睡、惊厥；2.心血管：心率减慢、血压下降；3.过敏反应。",
+    precautions:"1.静脉使用需心电监护。2.肝功能不全者减量。3.注意监测血药浓度。"
+  },
+  20: { name:"米力农注射液", alias:"米力农", category:"磷酸二酯酶抑制药",
+    indications:"1.急性心力衰竭；2.慢性心力衰竭急性加重期；3.心脏手术后低心排血量综合征。",
+    usage:"静脉注射：负荷剂量25~75μg/kg，5~10分钟缓慢注射；维持0.25~0.75μg/kg/min静脉滴注。",
+    contraindications:"1.严重主动脉或肺动脉瓣膜疾病；2.严重低血压；3.对米力农过敏者。",
+    adverse:"1.低血压；2.心律失常；3.头痛；4.血小板减少（长期使用）。",
+    precautions:"1.用药期间监测血压和心率。2.肾功能不全者减量。3.不推荐长期使用。"
+  },
+  21: { name:"盐酸甲氧氯普胺注射液", alias:"胃复安", category:"多巴胺受体拮抗药/止吐药",
+    indications:"1.恶心、呕吐；2.胃排空迟缓；3.胃食管反流；4.十二指肠插管前用药。",
+    usage:"肌肉注射或静脉注射：10~20mg/次，每日不超过0.5mg/kg。",
+    contraindications:"1.癫痫患者；2.嗜铬细胞瘤；3.机械性肠梗阻；4.胃肠道出血。",
+    adverse:"1.锥体外系反应（特别是儿童和年轻人）；2.嗜睡；3.泌乳；4.体位性低血压。",
+    precautions:"1.静脉注射须缓慢。2.儿童和老年人易发生锥体外系反应，应减量。3.不宜与抗胆碱药合用。"
+  },
+  22: { name:"硫酸鱼精蛋白注射液", alias:"鱼精蛋白", category:"肝素拮抗药",
+    indications:"1.肝素过量所致出血的拮抗；2.心血管手术、血液透析后中和体内残余肝素。",
+    usage:"静脉注射：根据肝素用量决定，一般1mg鱼精蛋白中和100U肝素。缓慢注射，10分钟内不超过50mg。",
+    contraindications:"1.对鱼精蛋白过敏者。",
+    adverse:"1.低血压；2.心动过缓；3.过敏反应（包括过敏性休克）；4.肺动脉高压。",
+    precautions:"1.注射速度必须缓慢。2.有鱼类过敏史者慎用。3.需监测APTT。"
+  },
+  23: { name:"注射用美罗培南（美平）", alias:"美罗培南", category:"碳青霉烯类抗生素",
+    indications:"1.敏感菌所致的中重度感染；2.腹腔感染；3.院内获得性肺炎；4.败血症；5.脑膜炎。",
+    usage:"静脉滴注：0.5~1g/次，每8小时一次，每次滴注15~30分钟。",
+    contraindications:"1.对碳青霉烯类抗生素过敏者；2.正在使用丙戊酸钠者（美罗培南可降低丙戊酸钠血药浓度）。",
+    adverse:"1.腹泻、恶心、呕吐；2.皮疹；3.肝功能异常；4.癫痫（少见，较亚胺培南低）。",
+    precautions:"1.肝肾功能不全者需调整剂量。2.注意伪膜性肠炎。3.不可与丙戊酸钠同用。"
+  },
+  24: { name:"硝酸异山梨酯注射液", alias:"异舒吉", category:"硝酸酯类/血管扩张药",
+    indications:"1.心绞痛发作的治疗和预防；2.急性心肌梗死；3.急性左心衰竭。",
+    usage:"静脉滴注：开始1~2mg/h，根据病情和血压调整，最大8~10mg/h。",
+    contraindications:"1.严重低血压；2.肥厚性梗阻型心肌病；3.缩窄性心包炎；4.近期使用PDE5抑制剂(如西地那非)。",
+    adverse:"1.头痛（最常见）；2.低血压；3.反射性心动过速；4.面部潮红。",
+    precautions:"1.用药期间监测血压。2.长期使用可产生耐药性。3.需有8~10小时无药间隔。"
+  },
+  25: { name:"氨甲环酸注射液", alias:"传明酸", category:"抗纤溶药/止血药",
+    indications:"1.各种出血性疾病；2.手术中及术后止血；3.消化道出血；4.肺出血。",
+    usage:"静脉注射或滴注：0.25~0.5g/次，每日0.75~2g，稀释后缓慢注射。",
+    contraindications:"1.有血栓形成倾向者；2.消耗性凝血病继发纤溶者慎用。",
+    adverse:"1.胃肠道反应；2.头晕；3.偶见血栓形成；4.低血压（快速静脉注射时）。",
+    precautions:"1.静脉注射需缓慢。2.肾功能不全者减量。3.注意监测凝血功能。"
+  },
+  26: { name:"地塞米松磷酸钠注射液", alias:"地塞米松", category:"糖皮质激素",
+    indications:"1.过敏性和自身免疫性疾病；2.严重感染辅助治疗；3.休克；4.脑水肿；5.恶性肿瘤辅助治疗。",
+    usage:"静脉注射或滴注：2~20mg/次，根据病情调整。",
+    contraindications:"1.全身性真菌感染；2.活动性消化性溃疡（相对禁忌）；3.严重精神病。",
+    adverse:"1.类库欣综合征；2.血糖升高；3.骨质疏松；4.消化性溃疡；5.免疫力下降；6.精神症状。",
+    precautions:"1.感染时需合用有效抗生素。2.不宜骤然停药。3.糖尿病患者慎用。"
+  },
+  27: { name:"门冬氨酸钾镁注射液（潘南金）", alias:"潘南金", category:"电解质补充药",
+    indications:"1.低钾血症；2.低镁血症；3.洋地黄中毒引起的心律失常；4.心肌炎后遗症。",
+    usage:"静脉滴注：10~20ml加入5%葡萄糖注射液250~500ml中缓慢滴注，每日1次。",
+    contraindications:"1.高钾血症；2.高镁血症；3.严重肾功能不全；4.房室传导阻滞。",
+    adverse:"1.滴注过快可致恶心、呕吐、面部潮红；2.高钾血症/高镁血症表现。",
+    precautions:"1.滴注速度不宜过快。2.肾功能不全者慎用。3.不宜与保钾利尿药合用。"
+  },
+  28: { name:"呋塞米注射液", alias:"速尿", category:"袢利尿药",
+    indications:"1.水肿性疾病；2.急性肺水肿；3.高血压；4.急性肾功能衰竭；5.高钾血症/高钙血症。",
+    usage:"静脉注射：开始20~40mg，必要时每2小时追加剂量。静脉滴注：200~400mg加入氯化钠注射液100ml，滴注速度不超过4mg/min。",
+    contraindications:"1.低钾血症；2.肝昏迷；3.超量使用洋地黄；4.无尿患者。",
+    adverse:"1.电解质紊乱（低钾、低钠、低氯）；2.低血压；3.耳毒性；4.高尿酸血症。",
+    precautions:"1.注意补钾。2.静脉注射宜缓慢。3.监测电解质和肾功能。"
+  },
+  29: { name:"硝酸甘油注射液", alias:"硝酸甘油", category:"硝酸酯类/血管扩张药",
+    indications:"1.不稳定型心绞痛；2.急性心肌梗死；3.急性左心衰竭；4.高血压急症。",
+    usage:"静脉滴注：开始5~10μg/min，每3~5分钟增加5~10μg/min，根据血压和症状调整，一般不超过200μg/min。",
+    contraindications:"1.严重贫血；2.颅内压增高；3.缩窄性心包炎；4.近期使用PDE5抑制剂。",
+    adverse:"1.头痛（最常见）；2.低血压；3.反射性心动过速；4.面部潮红；5.耐药性。",
+    precautions:"1.持续监测血压和心率。2.需避光保存和使用。3.长期使用需有无药间隔防止耐药。"
+  },
+  30: { name:"注射用氢化可的松琥珀酸钠", alias:"氢考", category:"糖皮质激素",
+    indications:"1.肾上腺皮质功能减退症；2.过敏性疾病；3.休克（感染性、过敏性）；4.严重哮喘；5.器官移植排斥反应。",
+    usage:"静脉滴注：100~200mg/次，每6~8小时一次，视病情调整。",
+    contraindications:"1.全身性真菌感染；2.活动性消化性溃疡。",
+    adverse:"1.水钠潴留；2.血糖升高；3.消化性溃疡；4.精神症状；5.骨质疏松。",
+    precautions:"1.感染时需合用有效抗生素。2.需逐渐减量停药。3.监测血糖和电解质。"
+  },
+  31: { name:"注射用甲泼尼龙琥珀酸钠", alias:"甲强龙/甲泼尼龙", category:"糖皮质激素",
+    indications:"1.危重型系统性红斑狼疮；2.急性重型哮喘；3.休克；4.器官移植排斥反应；5.脊髓损伤（冲击疗法）。",
+    usage:"静脉滴注：常规40~80mg/次；冲击疗法：500~1000mg/日，连用3~5天。",
+    contraindications:"1.全身性真菌感染；2.对甲泼尼龙过敏者。",
+    adverse:"1.水电解质紊乱（较氢化可的松轻）；2.血糖升高；3.消化性溃疡；4.精神症状。",
+    precautions:"1.大剂量冲击治疗需心电监护。2.不宜快速静脉注射（可致心律失常）。3.逐渐减量停药。"
+  },
+  32: { name:"盐酸尼卡地平注射液（佩尔）", alias:"佩尔/尼卡地平", category:"钙通道阻滞药",
+    indications:"1.高血压急症；2.手术中异常高血压的急救处理。",
+    usage:"静脉滴注：0.5~6μg/kg/min，根据血压调整。静脉注射：2~10μg/kg，缓慢注射。",
+    contraindications:"1.颅内出血；2.急性脑卒中；3.严重主动脉瓣狭窄。",
+    adverse:"1.心动过速；2.面部潮红；3.低血压；4.头痛；5.恶心。",
+    precautions:"1.严密监测血压。2.肝肾功能不全者减量。3.不可与PDE5抑制剂合用。"
+  },
+  33: { name:"甘露醇注射液", alias:"甘露醇", category:"脱水药/渗透性利尿药",
+    indications:"1.脑水肿和颅内压增高；2.青光眼；3.预防急性肾功能衰竭；4.促进毒物排泄。",
+    usage:"静脉滴注：0.25~2g/kg，一般20%溶液250ml，15~30分钟内快速滴注。",
+    contraindications:"1.已确诊的急性肾小管坏死的无尿患者；2.严重失水者；3.颅内活动性出血。",
+    adverse:"1.水和电解质紊乱；2.血容量增加致心力衰竭；3.寒战、发热；4.渗透性肾病。",
+    precautions:"1.滴注速度宜快（脑水肿时）。2.注意监测电解质和肾功能。3.冬季使用前检查有无结晶。"
+  },
+  34: { name:"氟马西尼注射液", alias:"安易醒", category:"苯二氮䓬类拮抗药",
+    indications:"1.苯二氮䓬类药物过量的解救；2.逆转苯二氮䓬类药物的镇静作用。",
+    usage:"静脉注射：首剂0.2mg，15~30秒内注完；如未清醒，每隔1分钟追加0.1mg，总量不超过1mg。",
+    contraindications:"1.对氟马西尼过敏者；2.三环类抗抑郁药过量者慎用。",
+    adverse:"1.恶心、呕吐；2.焦虑、激动；3.癫痫发作（长期使用苯二氮䓬者）；4.心律失常。",
+    precautions:"1.使用后需持续监护，因苯二氮䓬类作用时间可能超过氟马西尼。2.癫痫患者慎用。"
+  },
+  35: { name:"乳酸钠林格注射液", alias:"平衡液", category:"体液补充药",
+    indications:"1.补充体液和电解质；2.手术中/后补液；3.烧伤及失血性休克的初期补液。",
+    usage:"静脉滴注：根据患者情况调整，一般500~1000ml/次。",
+    contraindications:"1.心力衰竭；2.急性肺水肿；3.严重肾功能不全伴少尿或无尿。",
+    adverse:"1.过量输注可致水钠潴留；2.心力衰竭（大量快速输注时）。",
+    precautions:"1.监测电解质和酸碱平衡。2.不宜与含钙药物配伍。3.根据失液量调整剂量。"
+  },
+  36: { name:"5%碳酸氢钠注射液", alias:"小苏打", category:"抗酸药/碱化药",
+    indications:"1.代谢性酸中毒；2.碱化尿液；3.药物中毒的辅助治疗；4.心肺复苏。",
+    usage:"静脉滴注：根据血气分析结果计算用量，一般5%溶液100~250ml。公式：补碱量(mmol)=( -BE×0.3×体重kg)。",
+    contraindications:"1.代谢性碱中毒；2.低钙血症；3.呕吐所致的氯丢失性碱中毒。",
+    adverse:"1.代谢性碱中毒；2.低钾血症；3.钠潴留；4.外渗致组织坏死。",
+    precautions:"1.不宜与钙剂、洋地黄类药物配伍。2.静脉注射宜缓慢。3.监测血气分析。"
+  },
+  37: { name:"聚明胶肽注射液（菲克雪浓）", alias:"菲克雪浓", category:"血浆代用品",
+    indications:"1.低血容量性休克；2.手术中及手术后血容量补充；3.严重烧伤。",
+    usage:"静脉滴注：根据失血量调整，一般500~1500ml/次，最大剂量不超过2000ml/日。",
+    contraindications:"1.对聚明胶肽过敏者；2.严重凝血功能障碍；3.高钠血症。",
+    adverse:"1.过敏反应（皮疹、荨麻疹）；2.影响凝血功能（大量使用）；3.发热反应。",
+    precautions:"1.注意监测凝血功能。2.不可与含钙药物配伍。3.肾功能不全者慎用。"
+  },
+  38: { name:"钠钾镁钙葡萄糖注射液（乐加）", alias:"乐加", category:"电解质补充药",
+    indications:"1.补充体液和电解质；2.手术中/后维持电解质平衡；3.补充钾、镁、钙。",
+    usage:"静脉滴注：500~1000ml/次，根据患者需要调整滴速。",
+    contraindications:"1.高钾血症；2.高镁血症；3.高钙血症；4.严重肾功能不全。",
+    adverse:"1.滴注过快可致电解质紊乱；2.过敏反应（罕见）。",
+    precautions:"1.监测电解质和肾功能。2.不宜与含磷酸盐的药物配伍。3.肾功能不全者慎用。"
+  },
+  39: { name:"注射用苯磺酸瑞马唑仑（锐马）", alias:"锐马/瑞马唑仑", category:"苯二氮䓬类镇静药",
+    indications:"1.全身麻醉的诱导和维持；2.内镜诊疗的镇静；3.ICU镇静。",
+    usage:"静脉注射：麻醉诱导0.2~0.3mg/kg；维持0.1~0.2mg/kg/h持续输注。",
+    contraindications:"1.对瑞马唑仑过敏者；2.严重肝功能不全。",
+    adverse:"1.低血压；2.呼吸抑制；3.心动过缓；4.注射部位疼痛。",
+    precautions:"1.需备有呼吸支持设备。2.可被氟马西尼拮抗。3.老年人和肝功能不全者减量。"
+  },
+  40: { name:"环泊酚注射液（思舒宁）", alias:"思舒宁/环泊酚", category:"静脉麻醉药",
+    indications:"1.全身麻醉的诱导和维持；2.内镜诊疗的镇静；3.ICU镇静。",
+    usage:"静脉注射：麻醉诱导0.4mg/kg，缓慢注射；维持0.2~0.4mg/kg/h持续输注。",
+    contraindications:"1.对环泊酚或大豆油过敏者；2.严重心功能不全。",
+    adverse:"1.低血压；2.呼吸抑制；3.注射部位疼痛（较丙泊酚轻）；4.心动过缓。",
+    precautions:"1.需备有呼吸支持设备。2.老年人减量。3.脂肪代谢异常者慎用。"
+  },
+  41: { name:"喷他佐辛注射液", alias:"镇痛新", category:"混合型阿片受体激动-拮抗药",
+    indications:"1.各种急慢性疼痛；2.手术后镇痛；3.麻醉辅助用药。",
+    usage:"皮下或肌肉注射：30mg/次；静脉注射：10~20mg/次。必要时每3~4小时重复。",
+    contraindications:"1.对喷他佐辛过敏者；2.呼吸抑制；3.颅内压增高。",
+    adverse:"1.恶心、呕吐；2.嗜睡、头晕；3.呼吸抑制（较吗啡轻）；4.出汗。",
+    precautions:"1.有成瘾性但较吗啡低。2.不可与吗啡类合用（可促发戒断症状）。3.肝肾功能不全者减量。"
+  },
+  42: { name:"胰岛素注射液", alias:"普通胰岛素/短效胰岛素", category:"降糖药/激素类",
+    indications:"1.糖尿病酮症酸中毒；2.糖尿病高渗性昏迷；3.1型糖尿病；4.2型糖尿病口服药控制不佳；5.应激性高血糖。",
+    usage:"静脉注射：0.1U/kg负荷后0.1U/kg/h持续泵入(DKA)；皮下注射：根据血糖监测调整剂量。",
+    contraindications:"1.低血糖发作时；2.对胰岛素过敏者。",
+    adverse:"1.低血糖（最常见且最严重）；2.过敏反应；3.注射部位脂肪萎缩；4.胰岛素抵抗。",
+    precautions:"1.静脉使用需每小时监测血糖。2.注意区分胰岛素类型和给药途径。3.注意药物相互作用。4.2~8℃冷藏保存，避免冰冻。"
+  },
+};
+const OFFICIAL_MANUALS = [
+{
+    name:"盐酸肾上腺素注射液",
+    spec:"1ml∶1mg",
+    matchId:7,
+    indications:"主要适用于因支气管痉挛所致严重呼吸困难，可迅速缓解药物等引起的过敏性休克，亦可用于延长浸润麻醉用药的作用时间。各种原因引起的心脏骤停进行心肺复苏的主要抢救用药。",
+    usage:"常用量：皮下注射，1次0.25-1mg；极量：皮下注射，1次1mg。临床用于：\n1.抢救过敏性休克：本品具有兴奋心肌、升高血压、松弛支气管等作用，故可缓解过敏性休克的心跳微弱、血压下降、呼吸困难等症状。\n2.抢救心脏骤停：可用于麻醉和手术中的意外、药物中毒或心脏传导阻滞等原因引起的心脏骤停，以0.25-0.5mg以10ml生理盐水稀释后静脉(或心内注射)，同时进行心脏按压、人工呼吸、纠正酸中毒。对电击引起的心脏骤停，亦可用本品配合电除颤仪或利多卡因等进行抢救。\n3.治疗支气管哮喘：效果迅速但不持久。皮下注射0.25-0.5mg，3-5分钟见效，但仅能维持1小时。必要时每4小时可重复注射一次。\n4.与局麻药合用：加少量(约1：200000-500000)于局麻药中(如普鲁卡因)，在混合药液中，本品浓度为2-5μg/ml，总量不超过0.3mg，可减少局麻药的吸收而延长其药效，并减少其毒副作用，亦可减少手术部位的出血。\n5.制止鼻粘膜和齿龈出血：将浸有1:20000-1:1000溶液的纱布填塞出血处。\n6.治疗荨麻疹、枯草热、血清反应等：皮下注射1：1000溶液0.2-0.5ml，必要时再以上述剂量注射一次。",
+    adverse:"输注肾上腺素相关的不良反应：\n心血管系统：心动过速，室上性心动过速，室性心律失常，心肌缺血，心肌梗死，肢体缺血，肺水肿。\n胃肠道系统：恶心，呕吐。\n代谢：低血糖，高血糖，胰岛素抵抗，低钾血症，乳酸酸中毒。\n神经系统：头痛，神经过敏，感觉异常，震颤，中风，中枢神经系统出血。\n皮肤和皮下组织：发汗，苍白，毛发直立，皮肤变白，外渗皮肤坏死。\n与肌内或皮下使用相关的不良反应：焦虑，忧虑，烦躁不安，震颤，虚弱，头晕，出汗，心悸，脸色苍白，恶心和呕吐，头痛和呼吸困难。",
+    contraindications:"1.下列情况慎用：器质性脑病、心血管病、青光眼、帕金森氏病、噻嗪类引起的循环虚脱及低血压、精神神经疾病。2.用量过大或皮下注射时误入血管后，可引起血压突然上升而导致脑溢血。3.每次局麻使用剂量不可超过300μg，否则可引起心悸、头痛、血压升高等。4.与其他拟交感药有交叉过敏反应。5.可透过胎盘。6.抗过敏休克时，须补充血容量。",
+    precautions:"静脉输注引起的外渗和组织坏死：当静脉注射肾上腺素注射液时，应经常检查输液部位的自由流动情况。避免肾上腺素外渗到组织中，以防止局部坏死。外渗性缺血的解毒剂：为防止外渗区域蜕皮和坏死，用含5-10mg酚妥拉明的生理盐水溶液浸润该区域。\n不要注入臀部、手指、手或脚。\n肺水肿：静脉注射时由于外周收缩和心脏刺激，有肺水肿风险。\n心律失常和心肌缺血：可能诱发心律失常和心绞痛。\n亚硫酸盐引起的过敏反应：本品含有亚硫酸盐，可能在易感人群中引起过敏反应。"
+  },
+  {
+    name:"重酒石酸去甲肾上腺素注射液",
+    spec:"1ml:2mg",
+    matchId:8,
+    indications:"用于某些急性低血压状态(例如嗜铬细胞切除术、交感神经切除术、脊髓灰质炎、脊髓麻醉、心肌梗死、败血症、输血和药物反应)的血压控制。作为心脏骤停和严重低血压的辅助治疗手段。对血容量不足导致的休克，本品作为急救时补充血容量的辅助治疗，以使血压回升，暂时维持脑与冠状动脉灌注，直到补充血容量治疗发生作用；也可用于心跳骤停复苏后血压维持。",
+    usage:"稀释溶液的制备：使用5%葡萄糖注射液或5%葡萄糖氯化钠注射液作为稀释剂，配制成8μg/ml的稀释溶液。不建议仅使用生理盐水。\n用量：开始以每分钟16-24μg速度静脉输注，评估患者反应并调整剂量。每2分钟监测一次血压，直至达到预期的血流动力学效果，然后每5分钟监测一次。平均维持剂量为每分钟4-8μg。\n停药：停止输注时，应逐渐降低流速。避免突然停药。\n小儿常用量：开始按体重以每分钟0.02-0.1μg/kg速度滴注，按需要调节滴速。",
+    adverse:"最常见的不良反应是高血压和心动过缓。\n1.注射部位的外渗性坏死；2.组织缺血；3.突然停药后低血压；4.心律失常；5.神经系统：焦虑、头痛；6.呼吸系统：呼吸困难、肺水肿；7.过量时出现严重头痛及高血压、心率缓慢、呕吐、抽搐；8.个别病人因过敏而有皮疹、面部水肿。",
+    contraindications:"无绝对禁忌。",
+    precautions:"1.注射部位的外渗性坏死：应选择大静脉输注，频繁检查输注部位。外渗紧急处理：尽快用含5-10mg酚妥拉明的0.9%氯化钠注射液浸润缺血区域。\n2.组织缺血：不应用于血容量不足的低血压患者，除非作为紧急措施。\n3.突然停药后低血压：应逐渐降低输注速率。\n4.心律失常：需连续心脏监测。\n5.高血压：应从给药开始密切监测血压。\n6.含亚硫酸盐，可能在易感人群中引起过敏反应。"
+  },
+  {
+    name:"盐酸多巴胺注射液",
+    spec:"2.5ml:50mg",
+    matchId:11,
+    indications:"适用于心肌梗死、创伤、内毒素败血症、心脏手术、肾功能衰竭、充血性心力衰竭等引起的休克综合征；补充血容量后休克仍不能纠正者，尤其有少尿及周围血管阻力正常或较低的休克。由于本品可增加心排血量，也用于洋地黄和利尿剂无效的心功能不全。",
+    usage:"本品使用前应进行稀释，加入到0.9%氯化钠注射液、5%葡萄糖注射液等稀释使用。\n成人常用量：静脉注射，开始时每分钟按体重1-5μg/kg，10分钟内以每分钟1-4μg/kg速度递增。慢性顽固性心力衰竭，静滴开始时每分钟0.5-2μg/kg逐渐递增。多数病人按每分钟1-3μg/kg给予即可生效。\n闭塞性血管病变患者，静滴开始按每分钟1μg/kg，逐增至5-10μg/kg，直到20μg/kg。\n应尽可能选择大静脉注射，以防止外渗。",
+    adverse:"常见：头痛、异位心搏、心动过速、心绞痛、心悸、低血压、血管收缩、呼吸困难、恶心、呕吐。\n不常见：坏疽、瞳孔放大、传导异常、高血压、立毛、氮质血症。\n长期应用大剂量或小剂量用于外周血管病患者，可出现手足疼痛或手足发凉。",
+    contraindications:"1.对本品任何成分过敏者禁用。2.嗜铬细胞瘤或甲状腺功能亢进的患者禁用。3.未纠正的快速性心律失常或室颤患者禁用。4.禁止与环丙烷和卤代烃麻醉剂一起使用。",
+    precautions:"1.交叉过敏反应：对其他拟交感胺类药高度敏感的病人，可能对本品也异常敏感。2.含焦亚硫酸钠，可能使特定易感人群发生过敏反应。3.不能与碱性稀释液混合，以防失活。4.闭塞性血管病应慎用，须严密监测坏死及坏疽的可能性。5.应用前必须先纠正低血容量。6.须进行血压、心排血量、心电图及尿量的监测。"
+  },
+  {
+    name:"尼可刹米注射液",
+    spec:"1.5ml:0.375g",
+    matchId:43,
+    indications:"用于中枢性呼吸抑制及各种原因引起的呼吸抑制。",
+    usage:"皮下注射、肌内注射、静脉注射。成人常用量一次0.25～0.5g，必要时1～2小时重复用药，极量一次1.25g。小儿常用量6个月以下一次75mg，1岁一次0.125g，4～7岁一次0.175g。",
+    adverse:"常见面部刺激症、烦躁不安、抽搐、恶心呕吐等。大剂量时可出现血压升高、心悸、出汗、面部潮红、呕吐、震颤、心律失常、惊厥、甚至昏迷。",
+    contraindications:"抽搐及惊厥患者。",
+    precautions:"作用时间短暂，应视病情间隔给药。运动员慎用。"
+  },
+  {
+    name:"注射用甲泼尼龙琥珀酸钠",
+    spec:"按C22H30O5计 (1)40mg (2)125mg",
+    matchId:31,
+    indications:"除非用于某些内分泌疾病的替代治疗，糖皮质激素仅仅是一种对症治疗的药物。\n抗炎治疗：用于风湿性疾病、胶原疾病、皮肤疾病、过敏状态、眼部疾病、胃肠道疾病、呼吸道疾病、血液疾病、肿瘤等的危重期或维持治疗。\n内分泌疾病：原发性或继发性肾上腺皮质功能不全的替代治疗。",
+    usage:"作为对生命构成威胁的情况的辅助药物时，推荐剂量为30mg/kg，应至少用30分钟静脉注射。根据临床需要，此剂量可在48小时内每隔4～6小时重复一次。\n冲击疗法：类风湿性关节炎1g/天，静脉注射1-4天；或1g/月，用6个月。\n急性脊髓损伤：损伤后8小时内开始，初始剂量30mg/kg，15分钟静脉注射，暂停45分钟后以5.4mg/kg/小时持续静脉滴注23小时。",
+    adverse:"1.感染：并发感染为肾上腺皮质激素的主要不良反应；2.胃肠道：胃肠道刺激、胰腺炎、消化性溃疡或穿孔；3.神经精神系统：欣快感、激动、失眠、谵妄等；4.内分泌系统：医源性库欣综合征、水钠潴留、低血钾、糖耐量减退；5.肌肉骨骼：缺血性骨坏死、骨质疏松、肌无力；6.皮肤：伤口愈合受损、皮肤变薄。",
+    contraindications:"1.对本品活性成分及辅料过敏者禁用。2.局部注射糖皮质激素禁用于菌血症和全身性真菌感染。",
+    precautions:"1.可诱发或加重感染，细菌性、真菌性、病毒性感染患者应慎用。2.长期应用停药前应逐渐减量。3.运动员慎用。4.眼部单纯疱疹患者慎用。5.长期使用可产生后囊下白内障和青光眼。6.大剂量使用应在心电监护下进行。"
+  },
+  {
+    name:"氨茶碱注射液",
+    spec:"10ml:0.25g",
+    matchId:44,
+    indications:"适用于支气管哮喘、慢性喘息性支气管炎、慢性阻塞性肺病等缓解喘息症状；也可用于心功能不全和心源性哮喘。",
+    usage:"成人常用量：静脉注射，一次0.125～0.25g，一日0.5～1g，每次用50%葡萄糖注射液稀释至20～40ml，注射时间不得短于10分钟。静脉滴注，一次0.25～0.5g，一日0.5～1g，以5%～10%葡萄糖注射液稀释后缓慢滴注。极量一次0.5g，一日1g。\n小儿常用量：静脉注射一次按体重2～4mg/kg，以5%～25%葡萄糖注射液稀释后缓慢注射。",
+    adverse:"茶碱毒性常出现在血清浓度15-20μg/ml，早期多见恶心、呕吐、易激动、失眠等；超过20μg/ml可出现心动过速、心律失常；超过40μg/ml可发生发热、失水、惊厥等症状，严重的甚至引起呼吸、心跳停止致死。\n上市后不良反应：恶心、呕吐、心悸、心律失常、头晕、头痛、抽搐、寒战、发热、皮疹、瘙痒、胸闷、呼吸困难等。",
+    contraindications:"对本品中任何其他成分(包括乙二胺)过敏的患者，活动性消化溃疡和未经控制的惊厥性疾病患者禁用。",
+    precautions:"1.茶碱血清治疗浓度与毒性浓度接近，应保持在10-15μg/ml。2.下列情况慎用：酒精中毒、心律失常、严重心脏病、充血性心力衰竭、肝脏疾患、高血压、甲状腺功能亢进、严重低氧血症、急性心肌损害、活动性消化道溃疡、肾脏疾患。3.需监测血药浓度。4.静脉注射必须缓慢。"
+  },
+  {
+    name:"硫酸阿托品注射液",
+    spec:"1ml:0.5mg / 2ml:1mg",
+    matchId:45,
+    indications:"1.各种内脏绞痛，如胃肠绞痛及膀胱刺激症状；2.全身麻醉前给药、严重盗汗和流涎症；3.迷走神经过度兴奋所致的窦房阻滞、房室阻滞等缓慢型心律失常；4.抗休克改善循环；5.有机磷酸酯类中毒的解救。",
+    usage:"1.皮下、肌肉或静脉注射：成人常用量每次0.3～0.5mg，一日0.5～3mg；极量一次2mg。\n2.抗心律失常：成人静脉注射0.5～1mg，按需可1～2小时一次，最大用量2mg。\n3.解毒：有机磷中毒时肌注或静注1～2mg(严重时可加大5～10倍)，每10～20分钟重复。\n4.抗休克改善循环：成人一般按体重0.02～0.05mg/kg，用50%葡萄糖注射液稀释后静注。",
+    adverse:"0.5mg轻微心率减慢、略有口干及少汗；1mg口干、心率加速、瞳孔轻度扩大；2mg心悸、显著口干、瞳孔扩大，有时视物模糊；5mg上述症状加重，语言不清、烦躁不安、皮肤干燥发热、小便困难；10mg以上更重，出现谵妄、幻觉、惊厥等。严重中毒时由中枢兴奋转入抑制，产生昏迷和呼吸麻痹。最低致死剂量成人约为80～130mg，儿童为10mg。",
+    contraindications:"青光眼及前列腺肥大者、高热者禁用。",
+    precautions:"1.婴幼儿对本品毒性极其敏感，环境温度较高时有体温急骤升高的危险，须严密观察。2.老年人易发生抗M胆碱样副作用，夏天慎用。3.下列情况慎用：脑损害、心脏病、反流性食管炎、青光眼、溃疡性结肠炎、前列腺肥大。4.可引起视调节障碍、散瞳，不可驾驶或操作机械。5.孕妇静脉注射可使胎儿心动过速。"
+  },
+  {
+    name:"盐酸利多卡因注射液",
+    spec:"5ml:0.1g",
+    matchId:19,
+    indications:"本品为局麻药及抗心律失常药。主要用于浸润麻醉、硬膜外麻醉、表面麻醉及神经传导阻滞。可用于急性心肌梗塞后室性早搏和室性心动过速，亦可用于洋地黄类中毒、心脏外科手术及心导管引起的室性心律失常。本品对室上性心律失常通常无效。",
+    usage:"1.麻醉用：表面麻醉2%-4%溶液一次不超过100mg；硬脊膜外阻滞用1.5%-2.0%溶液，250-300mg；浸润麻醉用0.25%-0.5%溶液，50-300mg。一次限量不加肾上腺素为200mg(4mg/kg)，加肾上腺素为300-350mg(6mg/kg)。\n2.抗心律失常：静脉注射1-1.5mg/kg(一般50-100mg)作首次负荷量，2-3分钟注完，必要时每5分钟后重复，1小时内总量不超过300mg。维持以每分钟1-4mg速度静滴。",
+    adverse:"总发生率约6.3%：1.神经系统：头昏、眩晕、耳鸣、定向障碍、恶心、呕吐、惊厥、昏迷及呼吸抑制；2.心血管：大剂量可产生严重窦性心动过缓、心脏停搏、严重房室传导阻滞；3.过敏反应：红斑、皮疹及血管神经性水肿。",
+    contraindications:"1.对本品或其他局部麻醉药过敏者禁用。2.阿-斯氏综合征、预激综合征、严重心脏传导阻滞患者静脉禁用。3.恶性高热者禁用。",
+    precautions:"1.麻醉用时防止误入血管。2.肝肾功能障碍、充血性心力衰竭等患者慎用。3.严格掌握浓度和用药总量，超量可引起惊厥及心跳骤停。4.用药期间注意检查血压、监测心电图。5.用于治疗室性心律失常时，心肌梗塞后3个月内或有心力衰竭患者避免使用。"
+  },
+  {
+    name:"地塞米松磷酸钠注射液",
+    spec:"1ml：5mg",
+    matchId:26,
+    indications:"主要用于过敏性与自身免疫性炎症性疾病。多用于结缔组织病、活动性风湿病、类风湿性关节炎、红斑狼疮、严重支气管哮喘、严重皮炎、溃疡性结肠炎、急性白血病等，也用于某些严重感染及中毒、恶性淋巴瘤的综合治疗。",
+    usage:"一般剂量静脉注射每次2～20mg；静脉滴注时以5%葡萄糖注射液稀释，可2～6小时重复给药至病情稳定，但大剂量连续给药一般不超过72小时。\n缓解恶性肿瘤所致脑水肿：首剂静脉推注10mg，随后每6小时肌内注射4mg，2～4天后逐渐减量，5～7天停药。",
+    adverse:"1.感染：并发感染为主要不良反应；2.胃肠道：恶心呕吐、胰腺炎、消化性溃疡或穿孔；3.神经精神系统：欣快感、激动、失眠、谵妄；4.内分泌系统：医源性库欣综合征、水钠潴留、低血钾、糖耐量减退；5.肌肉骨骼：缺血性骨坏死、骨质疏松、肌无力；6.皮肤：伤口愈合受损、皮肤变薄。",
+    contraindications:"1.对本品活性成分及辅料过敏者禁用。2.局部注射禁用于菌血症和全身性真菌感染。",
+    precautions:"1.可诱发或加重感染，应慎用并给予适当抗感染治疗。2.长期应用停药前应逐渐减量。3.运动员慎用。4.眼部单纯疱疹患者慎用。5.长期使用可产生白内障和青光眼。"
+  },
+  {
+    name:"呋塞米注射液",
+    spec:"2ml:20mg",
+    matchId:28,
+    indications:"1.水肿性疾病：充血性心力衰竭、肝硬化、肾脏疾病等；2.高血压：当噻嗪类药物疗效不佳时；3.预防急性肾功能衰竭；4.高钾血症及高钙血症；5.稀释性低钠血症；6.抗利尿激素分泌过多症；7.急性药物毒物中毒。",
+    usage:"1.成人治疗水肿性疾病：静脉注射开始20～40mg，必要时每2小时追加剂量。治疗急性左心衰竭起始40mg静脉注射，必要时每小时追加80mg。治疗急性肾功能衰竭可用200～400mg加于氯化钠注射液100ml内静脉滴注，速度每分钟不超过4mg。每日总剂量不超过1g。\n2.治疗高血压危象：起始40～80mg静脉注射。\n3.小儿治疗水肿性疾病：起始按1mg/kg静脉注射。",
+    adverse:"1.严重不良反应：休克、过敏反应、再生障碍性贫血、听力损伤、间质性肾炎、室性心律失常；2.水电解质紊乱：低钾血症、低氯性碱中毒、低钠血症；3.高尿酸血症；4.血糖升高。",
+    contraindications:"1.无尿患者；2.肝性昏迷患者；3.体液中钠、钾明显减少的患者；4.对磺胺类药物及噻嗪类利尿药过敏者；5.对本品过敏者；6.妊娠三个月以内孕妇及哺乳期妇女；7.血容量不足或脱水患者。",
+    precautions:"1.交叉过敏：对磺胺药过敏者对本药可能亦过敏。2.药物剂量应从最小有效剂量开始。3.静脉注射应缓慢，常规剂量超过1～2分钟，大剂量每分钟不超过4mg。4.注意补充钾盐。5.随访检查血电解质。"
+  },
+  {
+    name:"去乙酰毛花苷注射液",
+    spec:"2ml:0.4mg",
+    matchId:13,
+    indications:"(1)主要用于心力衰竭。由于其作用较快，适用于急性心功能不全或慢性心功能不全急性加重的患者。(2)亦可用于控制伴快速心室率的心房颤动、心房扑动患者的心室率。(3)终止室上性心动过速起效慢，已少用。",
+    usage:"静脉注射成人常用量：用5%葡萄糖注射液稀释后缓慢注射，首剂0.4～0.6mg，以后每2～4小时可再给0.2～0.4mg，总量1～1.6mg。\n小儿常用量：按下列剂量分2～3次间隔3～4小时给予。早产儿和足月新生儿或肾功能减退、心肌炎患儿，按体重0.022mg/kg；2周～3岁按体重0.025mg/kg。\n本品静脉注射获满意疗效后，可改用地高辛常用维持量。",
+    adverse:"(1)常见：新出现的心律失常、胃纳不佳或恶心呕吐、下腹痛、异常的无力软弱；(2)少见：视力模糊或\"黄视\"、腹泻、精神抑郁或错乱；(3)罕见：嗜睡、头痛及皮疹、荨麻疹。心律失常最重要，最常见室性早搏约占心脏反应的33%。",
+    contraindications:"(1)任何强心甙制剂中毒；(2)室性心动过速、心室颤动；(3)梗阻性肥厚型心肌病；(4)预激综合征伴心房颤动或扑动。",
+    precautions:"(1)以下情况慎用：低钾血症、不完全性房室传导阻滞、高钙血症、甲状腺功能低下、缺血性心脏病、急性心肌梗死早期、心肌炎活动期、肾功能损害。(2)用药期间应随访检查：血压心率及心律、心电图、心功能、电解质尤其钾钙镁、肾功能。(3)过量时蓄积性小，一般停药后1～2天中毒表现可消退。"
+  },
+  {
+    name:"葡萄糖注射液",
+    spec:"20ml：10g",
+    matchId:2,
+    indications:"(1)补充能量和体液；用于各种原因引起的进食不足或大量体液丢失(如呕吐、腹泻等)，全静脉内营养，饥饿性酮症；(2)低糖血症；(3)高钾血症；(4)高渗溶液用作组织脱水剂；(5)配制腹膜透析液；(6)药物稀释剂；(7)静脉法葡萄糖耐量试验；(8)供配制GIK(极化液)液用。",
+    usage:"(1)补充热能：一般可予25%葡萄糖注射液静脉注射，并同时补充体液。(2)全静脉营养疗法：葡萄糖可配制为25%～50%的不同浓度，必要时加入胰岛素，每5～10g葡萄糖加入正规胰岛素1单位，一般选用大静脉滴注。(3)低糖血症：重者可先予50%葡萄糖注射液20～40ml静脉推注。(4)饥饿性酮症：严重者5%～25%葡萄糖注射液静脉滴注，每日100g可基本控制。(5)失水：等渗性失水给予5%葡萄糖注射液静脉滴注。(6)高钾血症：10%～25%注射液，每2～4g葡萄糖加1单位正规胰岛素输注。(7)组织脱水：50%葡萄糖注射液快速静脉注射20～50ml，作用短暂。",
+    adverse:"(1)静脉炎；(2)高浓度葡萄糖注射液外渗可致局部肿痛；(3)反应性低血糖；(4)高血糖非酮症昏迷；(5)电解质紊乱：长期单纯补给易出现低钾、低钠及低磷血症；(6)原有心功能不全者；(7)Ⅰ型糖尿病患者偶发高钾血症。",
+    contraindications:"(1)糖尿病酮症酸中毒未控制者；(2)高血糖非酮症性高渗状态。",
+    precautions:"(1)分娩时注射过多葡萄糖可刺激胎儿胰岛素分泌，发生产后婴儿低血糖。(2)下列情况慎用：①胃大部分切除患者；②周期性麻痹、低钾血症患者；③应激状态或应用糖皮质激素时；④水肿及严重心、肾功能不全、肝硬化腹水者应控制输液量。(3)补液过快过多可致心悸、心律失常甚至急性左心衰竭。"
+  }
+];
+const SHIFT_TYPES = ['白班','前夜','后夜'];
+const SHIFT_CLASSES = {'白班':'day','前夜':'night1','后夜':'night2'};
+
+// ===== Categories =====
+const DEFAULT_CATEGORIES = [
+  { id:'rescue', name:'抢救车药品说明书' },
+  { id:'other', name:'其它' },
+  { id:'unclassified', name:'未分类' }
+];
+function loadCategories() {
+  try {
+    const c = localStorage.getItem('nurse_manual_categories');
+    if (c) {
+      const stored = JSON.parse(c);
+      // Ensure 'other' and 'unclassified' categories always exist
+      if (!stored.find(cat => cat.id === 'other')) {
+        stored.push({ id: 'other', name: '其它' });
+      }
+      if (!stored.find(cat => cat.id === 'unclassified')) {
+        stored.push({ id: 'unclassified', name: '未分类' });
+      }
+      return stored;
+    }
+    return [...DEFAULT_CATEGORIES];
+  } catch(e) { return [...DEFAULT_CATEGORIES]; }
+}
+function saveCategories(cats) { localStorage.setItem('nurse_manual_categories', JSON.stringify(cats)); }
+
+function loadManualCategoryMap() {
+  try { const m = localStorage.getItem('nurse_manual_cat_map'); return m ? JSON.parse(m) : {}; } catch(e) { return {}; }
+}
+function saveManualCategoryMap(map) { localStorage.setItem('nurse_manual_cat_map', JSON.stringify(map)); }
+
+function getDefaultCategoryMap() {
+  const map = {};
+  OFFICIAL_MANUALS.forEach((m, i) => { map['official_'+i] = 'rescue'; });
+  const officialMatchIds = new Set(OFFICIAL_MANUALS.map(m => m.matchId));
+  Object.keys(MED_MANUALS).forEach(id => {
+    if (!officialMatchIds.has(parseInt(id))) map['med_'+id] = 'unclassified';
+  });
+  return map;
+}
+function getFullCategoryMap() {
+  return { ...getDefaultCategoryMap(), ...loadManualCategoryMap() };
+}
+
+// ===== Custom Manuals (user-uploaded) =====
+function loadCustomManuals() {
+  try { const d = localStorage.getItem('nurse_custom_manuals'); return d ? JSON.parse(d) : []; } catch(e) { return []; }
+}
+function saveCustomManuals(manuals) { localStorage.setItem('nurse_custom_manuals', JSON.stringify(manuals)); }
+
+// ===== State =====
+let currentDate = new Date();
+let currentShift = '白班';
+let selectedPersonnel = new Set();
+let selectedPersonnel2 = new Set();
+let missingEntries = [];
+let shiftData = {};
+let currentCategory = 'rescue';
+let missingIdCounter = 0;
+let editingManualKey = null; // track which manual is being edited
+
+// ===== Init =====
+function init() {
+  migrateOldData();
+  loadShiftData();
+  updateHeaderDate();
+  renderShiftDate();
+  renderShiftTabs();
+  renderPersonnel();
+  renderMedicineTable();
+  renderCategoryTabs();
+  renderOfficialList();
+  renderHistory();
+  loadCurrentShift();
+}
+
+function migrateOldData() {
+  try {
+    const raw = localStorage.getItem('nurse_shift_data');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    let migrated = false;
+    const newData = {};
+    Object.keys(data).forEach(key => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(key) && !key.includes('_')) {
+        newData[key + '_白班'] = data[key];
+        migrated = true;
+      } else { newData[key] = data[key]; }
+    });
+    if (migrated) localStorage.setItem('nurse_shift_data', JSON.stringify(newData));
+  } catch(e) {}
+}
+
+function loadShiftData() {
+  try { const data = localStorage.getItem('nurse_shift_data'); if (data) shiftData = JSON.parse(data); } catch(e) {}
+  // One-time migration: populate missing tracker from existing shift history
+  if (!localStorage.getItem('nurse_missing_tracker_migrated')) {
+    const tracker = loadMissingTracker();
+    Object.keys(shiftData).forEach(key => {
+      const d = shiftData[key];
+      if (d && d.missing && d.missing.length > 0) {
+        const keyParts = key.split('_');
+        const datePart = keyParts[0];
+        const shiftPart = keyParts.slice(1).join('_');
+        d.missing.forEach(m => {
+          if (m.medicineId) {
+            const med = MEDICINES.find(med => med.id == m.medicineId);
+            tracker.push({
+              id: 'mt_mig_' + Date.now() + '_' + Math.random().toString(36).substr(2,6),
+              medicineId: m.medicineId, medicineName: med ? med.name : '',
+              quantity: m.quantity || 1, reason: m.reason || '', note: m.note || '',
+              sourceDate: datePart, sourceShift: shiftPart,
+              sourcePersonnel: (d.personnel || []).join('、'),
+              resolved: false, resolvedAt: null, createdAt: new Date().toISOString()
+            });
+          }
+        });
+      }
+    });
+    saveMissingTracker(tracker);
+    localStorage.setItem('nurse_missing_tracker_migrated', '1');
+  }
+}
+function saveShiftData() { localStorage.setItem('nurse_shift_data', JSON.stringify(shiftData)); }
+
+// ===== Date =====
+function formatDate(d) {
+  const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+  return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 <span class="date-weekday">${weekdays[d.getDay()]}</span>`;
+}
+function formatDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function getShiftKey() { return formatDateKey(currentDate) + '_' + currentShift; }
+function updateHeaderDate() { document.getElementById('headerDate').textContent = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`; }
+function renderShiftDate() { document.getElementById('shiftDate').innerHTML = formatDate(currentDate); }
+function changeDate(delta) { autoSaveCurrentShift(); currentDate.setDate(currentDate.getDate() + delta); updateHeaderDate(); renderShiftDate(); loadCurrentShift(); }
+
+// ===== Shift Type =====
+function switchShift(shiftType) { autoSaveCurrentShift(); currentShift = shiftType; renderShiftTabs(); loadCurrentShift(); }
+function renderShiftTabs() {
+  document.querySelectorAll('.shift-tab').forEach(btn => {
+    const s = btn.dataset.shift;
+    btn.className = 'shift-tab' + (s === currentShift ? ' active-' + SHIFT_CLASSES[s] : '');
+  });
+}
+
+// ===== Personnel =====
+function renderPersonnel() {
+  document.getElementById('personnelGrid').innerHTML = PERSONNEL.map(p =>
+    `<div class="person-tag ${selectedPersonnel.has(p)?'selected':''}" onclick="togglePersonnel('${p}')">${p}</div>`
+  ).join('');
+  document.getElementById('personnelGrid2').innerHTML = PERSONNEL.map(p =>
+    `<div class="person-tag ${selectedPersonnel2.has(p)?'selected':''}" onclick="togglePersonnel2('${p}')">${p}</div>`
+  ).join('');
+}
+function togglePersonnel(name) { selectedPersonnel.has(name) ? selectedPersonnel.delete(name) : selectedPersonnel.add(name); renderPersonnel(); }
+function togglePersonnel2(name) { selectedPersonnel2.has(name) ? selectedPersonnel2.delete(name) : selectedPersonnel2.add(name); renderPersonnel(); }
+
+// ===== Missing Entries =====
+function addMissingEntry() { missingEntries.push({ id: ++missingIdCounter, medicineId:'', reason:'', quantity:1, note:'' }); renderMissingEntries(); }
+function removeMissingEntry(id) { missingEntries = missingEntries.filter(e => e.id !== id); renderMissingEntries(); }
+function renderMissingEntries() {
+  const list = document.getElementById('missingList');
+  const empty = document.getElementById('missingEmpty');
+  if (missingEntries.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = missingEntries.map((entry, idx) => `
+    <div class="missing-entry">
+      <div class="missing-entry-header">
+        <span class="missing-entry-num">缺失 #${idx+1}</span>
+        <button class="remove-missing" onclick="removeMissingEntry(${entry.id})">✕</button>
+      </div>
+      <div class="missing-fields">
+        <div class="missing-row">
+          <select class="form-select" onchange="updateMissing(${entry.id},'medicineId',this.value)">
+            <option value="">选择药品</option>
+            ${MEDICINES.map(m => `<option value="${m.id}" ${entry.medicineId==m.id?'selected':''}>${m.name}</option>`).join('')}
+          </select>
+          <select class="form-select" onchange="updateMissing(${entry.id},'reason',this.value)">
+            <option value="">选择原因</option>
+            ${MISSING_REASONS.map(r => `<option value="${r}" ${entry.reason===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+        <div class="missing-row">
+          <div class="form-group"><label class="form-label">缺失数量</label>
+            <input type="number" class="form-input" min="1" value="${entry.quantity}" onchange="updateMissing(${entry.id},'quantity',parseInt(this.value)||1)"></div>
+          <div class="form-group"><label class="form-label">补充说明</label>
+            <input type="text" class="form-input" placeholder="如需要可填写" value="${entry.note||''}" onchange="updateMissing(${entry.id},'note',this.value)"></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+function updateMissing(id, field, value) { const entry = missingEntries.find(e => e.id === id); if (entry) entry[field] = value; }
+
+// ===== Save/Load Shift =====
+function autoSaveCurrentShift() {
+  const key = getShiftKey();
+  const data = { personnel: Array.from(selectedPersonnel), personnel2: Array.from(selectedPersonnel2), missing: missingEntries.map(e => ({...e})), note: document.getElementById('shiftNote')?.value || '', shift: currentShift };
+  if (data.personnel.length > 0 || data.personnel2.length > 0 || data.missing.length > 0 || data.note) { shiftData[key] = data; saveShiftData(); }
+}
+function saveShift() {
+  const key = getShiftKey();
+  const personnel = Array.from(selectedPersonnel), personnel2 = Array.from(selectedPersonnel2), note = document.getElementById('shiftNote')?.value || '';
+  if (personnel.length === 0 && personnel2.length === 0 && missingEntries.length === 0) { showToast('请至少选择交班/接班人员或登记缺失药品'); return; }
+  shiftData[key] = { personnel, personnel2, missing: missingEntries.map(e => ({...e})), note, shift: currentShift, savedAt: new Date().toISOString() };
+  saveShiftData();
+  addMissingToTracker(key, personnel, missingEntries);
+  renderHistory(); renderMedicineTable(); showToast('✅ 交班记录已保存');
+}
+function loadCurrentShift() {
+  const key = getShiftKey();
+  const data = shiftData[key];
+  selectedPersonnel.clear(); selectedPersonnel2.clear(); missingEntries = [];
+  if (data) {
+    data.personnel.forEach(p => selectedPersonnel.add(p));
+    if (data.personnel2) data.personnel2.forEach(p => selectedPersonnel2.add(p));
+    missingEntries = data.missing.map(e => ({...e, id: ++missingIdCounter}));
+    if (document.getElementById('shiftNote')) document.getElementById('shiftNote').value = data.note || '';
+  } else {
+    if (document.getElementById('shiftNote')) document.getElementById('shiftNote').value = '';
+  }
+  renderPersonnel(); renderMissingEntries();
+}
+
+// ===== Medicine Table =====
+// ===== Missing Medicine Tracker (cumulative, traceable) =====
+function loadMissingTracker() {
+  try { const d = localStorage.getItem('nurse_missing_tracker'); return d ? JSON.parse(d) : []; } catch(e) { return []; }
+}
+function saveMissingTracker(tracker) { localStorage.setItem('nurse_missing_tracker', JSON.stringify(tracker)); }
+
+// Get unresolved missing total for a medicine
+function getUnresolvedMissing(medId) {
+  return loadMissingTracker().filter(r => r.medicineId == medId && !r.resolved)
+    .reduce((sum, r) => sum + (r.quantity || 1), 0);
+}
+
+// Add missing records to tracker when saving shift
+function addMissingToTracker(shiftKey, personnel, missing) {
+  const tracker = loadMissingTracker();
+  const keyParts = shiftKey.split('_');
+  const datePart = keyParts[0];
+  const shiftPart = keyParts.slice(1).join('_');
+  // Remove previous records from this same shift (re-save)
+  for (let i = tracker.length - 1; i >= 0; i--) {
+    if (tracker[i].sourceDate === datePart && tracker[i].sourceShift === shiftPart) tracker.splice(i, 1);
+  }
+  // Add new records
+  missing.forEach(m => {
+    if (m.medicineId) {
+      const med = MEDICINES.find(med => med.id == m.medicineId);
+      tracker.push({
+        id: 'mt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6),
+        medicineId: m.medicineId,
+        medicineName: med ? med.name : '',
+        quantity: m.quantity || 1,
+        reason: m.reason || '',
+        note: m.note || '',
+        sourceDate: datePart,
+        sourceShift: shiftPart,
+        sourcePersonnel: personnel.join('、'),
+        resolved: false,
+        resolvedAt: null,
+        createdAt: new Date().toISOString()
+      });
+    }
+  });
+  saveMissingTracker(tracker);
+}
+
+// Mark a missing record as resolved
+function resolveMissingRecord(trackerId) {
+  const tracker = loadMissingTracker();
+  const item = tracker.find(r => r.id === trackerId);
+  if (item) {
+    item.resolved = true;
+    item.resolvedAt = new Date().toISOString();
+    item.resolvedBy = currentUser ? currentUser.displayName : '未知';
+    item.resolvedByUsername = currentUser ? currentUser.username : '';
+    saveMissingTracker(tracker);
+    renderMedicineTable();
+  }
+}
+// Un-resolve a missing record
+function unresolveMissingRecord(trackerId) {
+  const tracker = loadMissingTracker();
+  const item = tracker.find(r => r.id === trackerId);
+  if (item) {
+    item.resolved = false;
+    item.resolvedAt = null;
+    item.resolvedBy = null;
+    item.resolvedByUsername = null;
+    saveMissingTracker(tracker);
+    renderMedicineTable();
+  }
+}
+// Delete a missing record
+function deleteMissingRecord(trackerId) {
+  if (!guardAdmin()) return;
+  let tracker = loadMissingTracker();
+  tracker = tracker.filter(r => r.id !== trackerId);
+  saveMissingTracker(tracker);
+  renderMedicineTable();
+}
+
+let expandedMedId = null;
+
+function toggleMedDetail(medId, event) {
+  if (event && event.target.closest('.detail-btn, .info-btn')) return;
+  expandedMedId = (expandedMedId === medId) ? null : medId;
+  renderMedicineTable();
+}
+
+function renderMedicineTable() {
+  const tracker = loadMissingTracker();
+  let rows = '';
+  MEDICINES.forEach(m => {
+    const records = tracker.filter(r => r.medicineId == m.id);
+    const unresolved = records.filter(r => !r.resolved);
+    const missing = unresolved.reduce((sum, r) => sum + (r.quantity || 1), 0);
+    const actual = m.base - missing;
+    const isDeficit = missing > 0;
+    const isExpanded = expandedMedId === m.id;
+    const rowClass = (isDeficit ? 'deficit' : '') + (isDeficit ? ' medicine-row' : '');
+
+    const hasRecords = records.length > 0;
+    const rowClick = hasRecords ? 'onclick="toggleMedDetail(' + m.id + ', event)"' : '';
+    rows += '<tr class="' + (isDeficit ? 'deficit ' : '') + (hasRecords ? 'medicine-row' : '') + '" ' + rowClick + '>'
+      + '<td>' + m.id + '</td>'
+      + '<td class="med-name">' + m.name + '</td>'
+      + '<td class="med-spec">' + m.spec + '</td>'
+      + '<td class="med-spec">' + m.pkg + '</td>'
+      + '<td>' + m.unit + '</td>'
+      + '<td><span class="med-base">' + (isDeficit ? actual : m.base) + '<span class="med-unit"> ' + m.unit + '</span></span>'
+      + (isDeficit ? '<br><span style="font-size:11px;color:var(--text-secondary)">基数' + m.base + '，缺' + missing + '</span>' : '')
+      + '</td>'
+      + '<td>' + (isDeficit
+        ? '<span class="deficit-badge">缺' + missing + m.unit + '</span><span class="expand-hint">' + (isExpanded ? ' ▲收起' : ' ▼溯源') + '</span>'
+        : hasRecords
+          ? '<span class="ok-badge">已补齐</span><span class="expand-hint">' + (isExpanded ? ' ▲收起' : ' ▼溯源') + '</span>'
+          : '<span class="ok-badge">齐全</span>')
+      + '</td>'
+      + '<td><button class="info-btn" onclick="event.stopPropagation();showMedInfo(' + m.id + ')">查看</button></td>'
+      + '</tr>';
+
+    // Expandable detail row (shown when has records and is expanded)
+    if (hasRecords && isExpanded) {
+      rows += '<tr class="detail-row"><td colspan="8"><div class="detail-row-inner">';
+      const resolvedCount = records.filter(r => r.resolved).length;
+      const totalLabel = missing > 0 ? '共缺 ' + missing + m.unit + '，' : '已全部补齐，';
+      rows += '<div class="detail-header">' + totalLabel + '溯源记录（' + records.length + '条，已处理' + resolvedCount + '条）：</div>';
+      const sorted = [...unresolved, ...records.filter(r => r.resolved)];
+      sorted.forEach(r => {
+        const resolvedClass = r.resolved ? ' resolved' : '';
+        const actionBtns = r.resolved
+          ? '<button class="detail-btn unresolve-btn" onclick="event.stopPropagation();unresolveMissingRecord(\''+r.id+'\')">撤回</button>'
+          : '<button class="detail-btn resolve-btn" onclick="event.stopPropagation();resolveMissingRecord(\''+r.id+'\')">已处理</button>';
+        const delBtn = isAdmin() ? '<button class="detail-btn delete-detail-btn" onclick="event.stopPropagation();deleteMissingRecord(\''+r.id+'\')">删除</button>' : '';
+        const resolvedInfo = r.resolved
+          ? ' ✅' + (r.resolvedBy || '未知') + '于' + (r.resolvedAt ? new Date(r.resolvedAt).toLocaleString('zh-CN') : '') + '处理'
+          : '';
+        rows += '<div class="detail-item' + resolvedClass + '">'
+          + '<span class="detail-text">' + r.sourceDate + ' ' + r.sourceShift + ' '
+          + (r.sourcePersonnel ? r.sourcePersonnel + ' 交班' : '')
+          + '：缺' + r.quantity + m.unit
+          + (r.reason ? '（' + r.reason + '）' : '')
+          + resolvedInfo
+          + '</span>'
+          + actionBtns + delBtn
+          + '</div>';
+      });
+      rows += '</div></td></tr>';
+    }
+  });
+  document.getElementById('medicineBody').innerHTML = rows;
+}
+function filterMedicines() {
+  const q = document.getElementById('medSearch').value.toLowerCase();
+  document.querySelectorAll('#medicineBody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+}
+
+// ===== Get Manual Data by Key =====
+function getManualByKey(key) {
+  if (key.startsWith('official_')) {
+    const idx = parseInt(key.replace('official_',''));
+    return OFFICIAL_MANUALS[idx] || null;
+  } else if (key.startsWith('med_')) {
+    const id = key.replace('med_','');
+    return MED_MANUALS[id] || null;
+  } else if (key.startsWith('custom_')) {
+    const customs = loadCustomManuals();
+    return customs.find(c => c.key === key) || null;
+  }
+  return null;
+}
+
+// ===== Show Manual Info (with Edit & Upload) =====
+function showMedInfo(id) {
+  const med = MEDICINES.find(m => m.id === id);
+  if (!med) return;
+  const officialIdx = OFFICIAL_MANUALS.findIndex(om => om.matchId === id);
+  let key, name, spec, isOfficial = false;
+  if (officialIdx >= 0) {
+    key = 'official_' + officialIdx;
+    name = OFFICIAL_MANUALS[officialIdx].name;
+    spec = OFFICIAL_MANUALS[officialIdx].spec;
+    isOfficial = true;
+  } else {
+    key = 'med_' + id;
+    name = med.name;
+    spec = med.spec;
+  }
+  showManualModal(key, name, spec, isOfficial, id);
+}
+
+function showManualModal(key, name, spec, isOfficial, medicineId) {
+  editingManualKey = key;
+  const manual = getManualByKey(key);
+  const modal = document.getElementById('infoModal');
+  document.getElementById('modalTitle').textContent = name;
+  document.getElementById('modalSubtitle').textContent = spec ? `规格：${spec}${isOfficial ? ' | 📋 官方药品说明书' : ''}` : '';
+
+  let body = '';
+  if (manual) {
+    body = renderManualView(key, manual, isOfficial);
+  } else {
+    body = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">暂无说明书信息</div></div>';
+  }
+  document.getElementById('modalBody').innerHTML = body;
+  modal.classList.add('show');
+}
+
+function renderManualView(key, manual, isOfficial) {
+  // Check for user overrides
+  const overrides = loadManualOverrides();
+  const ov = overrides[key];
+  const indications = ov?.indications || manual.indications || '';
+  const usage = ov?.usage || manual.usage || '';
+  const adverse = ov?.adverse || manual.adverse || '';
+  const contraindications = ov?.contraindications || manual.contraindications || '';
+  const precautions = ov?.precautions || manual.precautions || '';
+  const category = manual.category || '';
+
+  let catInfo = '';
+  if (category) catInfo = `<div class="info-section"><div class="info-section-title">🏷️ 分类</div><div class="info-section-content">${category}${manual.alias ? '（别名：'+manual.alias+'）' : ''}</div></div>`;
+
+  return `
+    ${isOfficial ? '<div style="background:var(--primary-light);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--primary);font-weight:600;">📋 官方药品说明书</div>' : ''}
+    ${catInfo}
+    <div class="info-section" id="sec_indications"><div class="info-section-title">📋 适应症</div><div class="info-section-content">${indications.replace(/\n/g, '<br>')}</div></div>
+    <div class="info-section" id="sec_usage"><div class="info-section-title">💉 用法用量</div><div class="info-section-content">${usage.replace(/\n/g, '<br>')}</div></div>
+    <div class="info-section" id="sec_contraindications"><div class="info-section-title">🚫 禁忌症</div><div class="info-section-content">${contraindications.replace(/\n/g, '<br>')}</div></div>
+    <div class="info-section" id="sec_adverse"><div class="info-section-title">⚠️ 不良反应</div><div class="info-section-content">${adverse.replace(/\n/g, '<br>')}</div></div>
+    <div class="info-section" id="sec_precautions"><div class="info-section-title">💡 注意事项</div><div class="info-section-content">${precautions.replace(/\n/g, '<br>')}</div></div>
+    <div class="warning-box">⚠️ ${isOfficial ? '以上信息来源于官方药品说明书，仅供临床参考。' : '以上信息仅供参考，具体用药请以药品实际说明书和医嘱为准。'}</div>
+    ${isAdmin() ? `<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="editManual('${key}')">✏️ 编辑</button>
+      <button class="btn btn-outline btn-sm" onclick="triggerSingleUpload('${key}')">📋 粘贴说明书</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteManual('${key}','${document.getElementById('modalTitle')?.textContent||''}') ; closeModal();">🗑️ 删除</button>
+    </div>` : ''}
+  `;
+}
+
+// ===== Manual Overrides (user edits) =====
+function loadManualOverrides() {
+  try { const d = localStorage.getItem('nurse_manual_overrides'); return d ? JSON.parse(d) : {}; } catch(e) { return {}; }
+}
+function saveManualOverrides(ov) { localStorage.setItem('nurse_manual_overrides', JSON.stringify(ov)); }
+
+// ===== Edit Manual =====
+function editManual(key) {
+  if (!guardAdmin()) return;
+  const manual = getManualByKey(key);
+  if (!manual) return;
+  const overrides = loadManualOverrides();
+  const ov = overrides[key] || {};
+  const indications = ov.indications ?? manual.indications ?? '';
+  const usage = ov.usage ?? manual.usage ?? '';
+  const adverse = ov.adverse ?? manual.adverse ?? '';
+  const contraindications = ov.contraindications ?? manual.contraindications ?? '';
+  const precautions = ov.precautions ?? manual.precautions ?? '';
+
+  document.getElementById('modalBody').innerHTML = `
+    <div class="edit-section-title">📋 适应症</div>
+    <textarea class="edit-field" id="edit_indications">${escHtml(indications)}</textarea>
+    <div class="edit-section-title" style="margin-top:12px;">💉 用法用量</div>
+    <textarea class="edit-field" id="edit_usage">${escHtml(usage)}</textarea>
+    <div class="edit-section-title" style="margin-top:12px;">🚫 禁忌症</div>
+    <textarea class="edit-field" id="edit_contraindications">${escHtml(contraindications)}</textarea>
+    <div class="edit-section-title" style="margin-top:12px;">⚠️ 不良反应</div>
+    <textarea class="edit-field" id="edit_adverse">${escHtml(adverse)}</textarea>
+    <div class="edit-section-title" style="margin-top:12px;">💡 注意事项</div>
+    <textarea class="edit-field" id="edit_precautions">${escHtml(precautions)}</textarea>
+  `;
+  document.getElementById('modalFooter').style.display = 'flex';
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn btn-outline btn-sm" onclick="cancelEdit('${key}')">取消</button>
+    <button class="btn btn-primary btn-sm" onclick="saveEdit('${key}')">💾 保存修改</button>
+  `;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function cancelEdit(key) {
+  document.getElementById('modalFooter').style.display = 'none';
+  const manual = getManualByKey(key);
+  const isOfficial = key.startsWith('official_');
+  const name = document.getElementById('modalTitle').textContent;
+  const spec = document.getElementById('modalSubtitle').textContent;
+  document.getElementById('modalBody').innerHTML = renderManualView(key, manual, isOfficial);
+}
+
+function saveEdit(key) {
+  const overrides = loadManualOverrides();
+  overrides[key] = {
+    indications: document.getElementById('edit_indications').value,
+    usage: document.getElementById('edit_usage').value,
+    contraindications: document.getElementById('edit_contraindications').value,
+    adverse: document.getElementById('edit_adverse').value,
+    precautions: document.getElementById('edit_precautions').value,
+    editedAt: new Date().toISOString()
+  };
+  saveManualOverrides(overrides);
+  document.getElementById('modalFooter').style.display = 'none';
+  const manual = getManualByKey(key);
+  const isOfficial = key.startsWith('official_');
+  document.getElementById('modalBody').innerHTML = renderManualView(key, manual, isOfficial);
+  renderOfficialList();
+  showToast('✅ 说明书已更新');
+}
+
+// ===== Single Paste Upload (for a specific drug) =====
+let uploadTargetKey = null;
+function triggerSingleUpload(key) {
+  uploadTargetKey = key;
+  const manual = getManualByKey(key);
+  const isOfficial = key.startsWith('official_');
+  const modal = document.getElementById('manualModal');
+  document.getElementById('modalBody').innerHTML = `
+    <div style="padding:4px;">
+      <div style="font-size:13px;margin-bottom:8px;color:var(--text-secondary);">将药品说明书文本粘贴到下方，系统自动识别并覆盖当前说明书：</div>
+      <textarea id="singlePasteText" style="width:100%;height:220px;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;resize:vertical;font-family:inherit;" placeholder="将药品说明书文本粘贴到这里..."></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="processSinglePaste()">✅ 识别并覆盖</button>
+        <button class="btn btn-outline btn-sm" onclick="closeModal()">取消</button>
+      </div>
+    </div>
+  `;
+}
+
+function processSinglePaste() {
+  const textarea = document.getElementById('singlePasteText');
+  if (!textarea || !textarea.value.trim()) { showToast('请先粘贴内容'); return; }
+  const text = textarea.value.trim();
+  const parsed = parseManualText(text, '手动粘贴');
+  if (parsed) {
+    const overrides = loadManualOverrides();
+    overrides[uploadTargetKey] = {
+      ...parsed,
+      source: '手动粘贴',
+      uploadedAt: new Date().toISOString()
+    };
+    saveManualOverrides(overrides);
+    const manual = getManualByKey(uploadTargetKey);
+    const isOfficial = uploadTargetKey.startsWith('official_');
+    document.getElementById('modalBody').innerHTML = renderManualView(uploadTargetKey, manual, isOfficial);
+    renderOfficialList();
+    showToast('✅ 说明书已更新');
+  } else {
+    showToast('⚠️ 未能识别药品说明书结构，请确保包含"适应症"、"用法用量"等标题');
+  }
+}
+
+// ===== Parse manual text from uploaded file =====
+// ===== Read document file (handles .docx, .xlsx, .txt, etc.) =====
+async function readDocumentFile(file) {
+  const name = file.name.toLowerCase();
+  const _log = [];
+  // Always save log on exit (even on error)
+  const _saveLog = () => { window.__lastParseLog = _log.join('\n'); };
+  const _origReturn = (v) => { _saveLog(); return v; };
+  
+  // Get ArrayBuffer (with FileReader fallback for older browsers)
+  function getFileBuffer(f) {
+    if (f.arrayBuffer) return f.arrayBuffer();
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsArrayBuffer(f);
+    });
+  }
+  
+  // Plain text files
+  if (name.endsWith('.txt') || name.endsWith('.csv')) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsText(file, 'UTF-8');
+    });
+  }
+  
+  // .docx files
+  if (name.endsWith('.docx')) {
+    try {
+      const arrayBuffer = await getFileBuffer(file);
+      _log.push('arrayBuffer: ' + arrayBuffer.byteLength + ' bytes');
+      
+      // Try mammoth.js first
+      if (typeof mammoth !== 'undefined') {
+        try {
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          if (result.value && result.value.trim().length > 20) {
+            _log.push('mammoth: OK (' + result.value.length + ' chars)');
+            _saveLog();
+            return result.value;
+          }
+          _log.push('mammoth: text too short');
+        } catch(e) { _log.push('mammoth error: ' + e.message); }
+      } else {
+        _log.push('mammoth: not loaded');
+      }
+      
+      // Fallback: inline .docx XML parser (uses embedded pako)
+      try {
+        const text = await parseDocxInline(arrayBuffer);
+        if (text && text.trim().length > 10) {
+          _log.push('inline parser: OK (' + text.length + ' chars)');
+          _saveLog();
+          return text;
+        }
+        _log.push('inline parser: text too short (' + (text ? text.trim().length : 0) + ')');
+      } catch(e) { _log.push('inline parser error: ' + e.message); }
+      
+      // Last resort: extract readable text from binary
+      const fallbackText = extractReadableText(arrayBuffer);
+      _log.push('binary fallback: ' + fallbackText.length + ' chars');
+      _saveLog();
+      return fallbackText;
+    } catch(e) {
+      _log.push('docx parse fatal: ' + e.message);
+      _saveLog();
+      throw e;
+    }
+  }
+  
+  // .doc files (old binary format)
+  if (name.endsWith('.doc')) {
+    const arrayBuffer = await getFileBuffer(file);
+    if (typeof mammoth !== 'undefined') {
+      try {
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        if (result.value && result.value.trim().length > 20) return result.value;
+      } catch(e) {}
+    }
+    try {
+      const text = await parseDocxInline(arrayBuffer);
+      if (text && text.trim().length > 10) return text;
+    } catch(e) {}
+    return extractReadableText(arrayBuffer);
+  }
+  
+  // .xlsx / .xls files
+  if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+    const arrayBuffer = await getFileBuffer(file);
+    if (typeof XLSX !== 'undefined') {
+      try {
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        let allText = '';
+        workbook.SheetNames.forEach(sheetName => {
+          const sheet = workbook.Sheets[sheetName];
+          const csv = XLSX.utils.sheet_to_csv(sheet);
+          if (csv) allText += '=== ' + sheetName + ' ===\n' + csv + '\n\n';
+        });
+        if (allText.trim().length > 10) return allText;
+      } catch(e) {}
+    }
+    return extractReadableText(arrayBuffer);
+  }
+  
+  // Fallback for any other format
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+// Inline .docx parser (no external dependency needed)
+// .docx is a ZIP file containing word/document.xml
+async function parseDocxInline(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer);
+  const text = inflateZipToString(bytes);
+  return text;
+}
+
+// Minimal ZIP inflater - extracts text from .docx ZIP archives
+async function inflateZipToString(bytes) {
+  // Step 1: Find ZIP end of central directory to locate central directory
+  let eocdOffset = -1;
+  for (let i = bytes.length - 22; i >= 0; i--) {
+    if (bytes[i] === 0x50 && bytes[i+1] === 0x4b && bytes[i+2] === 0x05 && bytes[i+3] === 0x06) {
+      eocdOffset = i; break;
+    }
+  }
+  if (eocdOffset < 0) throw new Error('Not a valid ZIP file');
+
+  // Step 2: Build a map of filename -> real compressed/uncompressed sizes from central directory
+  const centralDirOffset = readUint32(bytes, eocdOffset + 16);
+  const centralDirEntries = readUint16(bytes, eocdOffset + 10);
+  const centralSizes = {};
+  let cdPos = centralDirOffset;
+  for (let i = 0; i < centralDirEntries; i++) {
+    if (bytes[cdPos] === 0x50 && bytes[cdPos+1] === 0x4b && bytes[cdPos+2] === 0x01 && bytes[cdPos+3] === 0x02) {
+      const cMethod = readUint16(bytes, cdPos + 10);
+      const cCompressed = readUint32(bytes, cdPos + 20);
+      const cUncompressed = readUint32(bytes, cdPos + 24);
+      const cNameLen = readUint16(bytes, cdPos + 28);
+      const cExtraLen = readUint16(bytes, cdPos + 30);
+      const cCommentLen = readUint16(bytes, cdPos + 32);
+      const cName = String.fromCharCode(...bytes.slice(cdPos + 46, cdPos + 46 + cNameLen));
+      centralSizes[cName] = { compressedSize: cCompressed, uncompressedSize: cUncompressed, method: cMethod };
+      cdPos += 46 + cNameLen + cExtraLen + cCommentLen;
+    } else { break; }
+  }
+
+  // Step 3: Scan local file headers to find word/document.xml
+  let pos = 0;
+  while (pos < bytes.length - 30) {
+    if (bytes[pos] === 0x50 && bytes[pos+1] === 0x4b && bytes[pos+2] === 0x03 && bytes[pos+3] === 0x04) {
+      const localFlags = readUint16(bytes, pos + 6);
+      let compressedSize = readUint32(bytes, pos + 18);
+      const compressionMethod = readUint16(bytes, pos + 8);
+      const filenameLen = readUint16(bytes, pos + 26);
+      const extraLen = readUint16(bytes, pos + 28);
+      const filename = String.fromCharCode(...bytes.slice(pos + 30, pos + 30 + filenameLen));
+      const dataOffset = pos + 30 + filenameLen + extraLen;
+
+      // If data descriptor flag (bit 3) is set, local sizes are 0 - use central directory sizes
+      if ((localFlags & 0x08) && centralSizes[filename]) {
+        compressedSize = centralSizes[filename].compressedSize;
+      }
+
+      if (filename === 'word/document.xml' && compressedSize > 0) {
+        const compressedData = bytes.slice(dataOffset, dataOffset + compressedSize);
+        let xmlText = '';
+
+        if (compressionMethod === 0) {
+          xmlText = new TextDecoder('utf-8').decode(compressedData);
+        } else if (compressionMethod === 8) {
+          // pako is embedded inline, always available
+          if (typeof pako !== 'undefined') {
+            try {
+              const decompressed = pako.inflateRaw(compressedData);
+              xmlText = new TextDecoder('utf-8').decode(decompressed);
+            } catch(e) { console.warn('pako inflateRaw failed:', e); }
+          }
+          // Fallback: DecompressionStream
+          if (!xmlText && typeof DecompressionStream !== 'undefined') {
+            try {
+              const ds = new DecompressionStream('deflate-raw');
+              const writer = ds.writable.getWriter();
+              writer.write(compressedData);
+              writer.close();
+              const reader = ds.readable.getReader();
+              const chunks = [];
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+              }
+              const totalLen = chunks.reduce((a, c) => a + c.length, 0);
+              const decompressed = new Uint8Array(totalLen);
+              let offset = 0;
+              for (const chunk of chunks) { decompressed.set(chunk, offset); offset += chunk.length; }
+              xmlText = new TextDecoder('utf-8').decode(decompressed);
+            } catch(e) { console.warn('DecompressionStream failed:', e); }
+          }
+          if (!xmlText) throw new Error('No deflate decompressor available (pako and DecompressionStream both failed)');
+        }
+
+        if (xmlText) {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xmlText, 'application/xml');
+          const textNodes = doc.getElementsByTagName('w:t');
+          let extractedText = '';
+          let prevPara = null;
+          for (let j = 0; j < textNodes.length; j++) {
+            const node = textNodes[j];
+            let p = node.parentNode;
+            while (p && p.nodeName !== 'w:p') p = p.parentNode;
+            if (p !== prevPara && prevPara !== null) extractedText += '\n';
+            prevPara = p;
+            extractedText += node.textContent || '';
+          }
+          return extractedText;
+        }
+      }
+
+      // Move past this entry
+      if (compressedSize > 0) {
+        pos = dataOffset + compressedSize;
+      } else {
+        // Can't determine size, scan for next local header or central dir
+        pos = dataOffset;
+        while (pos < bytes.length - 4) {
+          if (bytes[pos] === 0x50 && bytes[pos+1] === 0x4b && (bytes[pos+2] === 0x03 || bytes[pos+2] === 0x01)) break;
+          pos++;
+        }
+      }
+    } else {
+      pos++;
+    }
+  }
+  throw new Error('word/document.xml not found in ZIP');
+}
+
+function readUint16(bytes, offset) {
+  return bytes[offset] | (bytes[offset + 1] << 8);
+}
+
+function readUint32(bytes, offset) {
+  return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
+}
+
+// Extract readable Chinese/English text from binary data
+function extractReadableText(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer);
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const rawText = decoder.decode(bytes);
+  const lines = rawText.split(/[\r\n]+/).filter(line => {
+    const clean = line.trim();
+    return clean.length > 3 && /[\u4e00-\u9fff\u3000-\u303f\uff00-\uffefa-zA-Z0-9]/.test(clean);
+  });
+  return lines.join('\n');
+}
+
+function parseManualText(text, filename) {
+  if (!text || text.trim().length < 20) return null;
+  
+  const sections = { indications: '', usage: '', adverse: '', contraindications: '', precautions: '' };
+  
+  const headingMap = {
+    indications: [/适应症/i, /主治/i, /功能主治/i],
+    usage: [/用法用量/i, /用法与用量/i, /给药途径/i],
+    adverse: [/不良反应/i, /副作用/i],
+    contraindications: [/禁忌症?/i],
+    precautions: [/注意事项/i, /警示/i]
+  };
+  
+  // Pre-process: split long lines at section headings (e.g., "【适应症】" or "适应症：")
+  // This handles cases where docx extraction puts multiple sections on one line
+  const preLines = text.split(/\n/);
+  const splitLines = [];
+  for (const line of preLines) {
+    // Split on 【XXX】 patterns or section heading keywords followed by colon
+    const parts = line.split(/(?=【[^\】]*(?:适应症|主治|功能主治|用法用量|用法与用量|给药途径|不良反应|副作用|禁忌症?|注意事项|警示)[^\】]*】)|(?=(?:适应症|主治|功能主治|用法用量|用法与用量|给药途径|不良反应|副作用|禁忌症?|注意事项|警示)[：:])/);
+    if (parts.length > 1) {
+      splitLines.push(...parts.filter(p => p.trim()));
+    } else {
+      splitLines.push(line);
+    }
+  }
+  
+  let currentSection = null;
+  const sectionTexts = {};
+  
+  for (const line of splitLines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let matched = false;
+    for (const [section, patterns] of Object.entries(headingMap)) {
+      for (const pattern of patterns) {
+        if (pattern.test(trimmed) && trimmed.length < 60) {
+          currentSection = section;
+          sectionTexts[section] = '';
+          matched = true; break;
+        }
+      }
+      if (matched) break;
+    }
+    if (!matched && currentSection) {
+      sectionTexts[currentSection] = (sectionTexts[currentSection] || '') + trimmed + '\n';
+    }
+  }
+  
+  if (Object.keys(sectionTexts).length === 0) {
+    sectionTexts.indications = text.trim();
+  }
+  
+  for (const [key, val] of Object.entries(sectionTexts)) {
+    if (sections.hasOwnProperty(key)) sections[key] = val.trim();
+  }
+  return sections;
+}
+
+// Parse a text that may contain MULTIPLE drug manuals (split by drug name markers)
+function parseMultipleManuals(text, filename) {
+  if (!text || text.trim().length < 20) return [];
+  
+  const lines = text.split(/\n/);
+  const drugBlocks = []; // Array of { name, textLines }
+  let currentBlock = null;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Detect drug name lines: "药品名称：XXX" or "药品名称】\nXXX" pattern
+    const nameMatch = trimmed.match(/^药品名称[：:】]?(\S.*)?$/);
+    if (nameMatch) {
+      if (currentBlock && currentBlock.lines.length > 0) drugBlocks.push(currentBlock);
+      const nameOnSameLine = nameMatch[1] ? nameMatch[1].trim() : '';
+      currentBlock = { name: nameOnSameLine, lines: [] };
+      if (nameOnSameLine) currentBlock.lines.push(trimmed);
+      continue;
+    }
+    // If currentBlock has no name yet, this line might be the drug name
+    if (currentBlock && !currentBlock.name && trimmed.length > 1 && trimmed.length < 60) {
+      currentBlock.name = trimmed;
+      continue;
+    }
+    if (currentBlock) currentBlock.lines.push(trimmed);
+  }
+  if (currentBlock && currentBlock.lines.length > 0) drugBlocks.push(currentBlock);
+  
+  // If no drug blocks found, treat entire text as single drug
+  if (drugBlocks.length === 0) {
+    const parsed = parseManualText(text, filename);
+    if (parsed) {
+      let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
+      const firstLines = text.split(/\n/);
+      for (const l of firstLines) {
+        const t = l.trim();
+        if (t.length > 2 && t.length < 50 && !/^[\s\d\-–—【]/.test(t)) { drugName = t; break; }
+      }
+      return [{ name: drugName, ...parsed }];
+    }
+    return [];
+  }
+  
+  // Parse each drug block
+  const results = [];
+  for (const block of drugBlocks) {
+    const blockText = block.lines.join('\n');
+    if (blockText.trim().length < 20) continue;
+    const parsed = parseManualText(blockText, filename);
+    if (parsed) {
+      let name = block.name;
+      if (!name) {
+        name = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
+        const firstLines = blockText.split(/\n/);
+        for (const l of firstLines) {
+          const t = l.trim();
+          if (t.length > 2 && t.length < 50 && !/^[\s\d\-–—【]/.test(t)) { name = t; break; }
+        }
+      }
+      // Clean up name - remove "药品名称：" prefix
+      name = name.replace(/^药品名称[：:】]\s*/, '').trim();
+      results.push({ name, ...parsed });
+    }
+  }
+  return results;
+}
+
+// ===== Category Tabs =====
+function renderCategoryTabs() {
+  const cats = loadCategories();
+  document.getElementById('categoryTabs').innerHTML = cats.map(c =>
+    `<div class="category-tab ${c.id === currentCategory ? 'active' : ''}" onclick="selectCategory('${c.id}')">${c.name}</div>`
+  ).join('') + `<button class="category-add" onclick="addCategory()">＋ 添加分类</button>`;
+}
+function selectCategory(catId) { currentCategory = catId; renderCategoryTabs(); renderOfficialList(); }
+function addCategory() {
+  const name = prompt('请输入新分类名称：');
+  if (!name || !name.trim()) return;
+  const cats = loadCategories();
+  const id = 'cat_' + Date.now();
+  cats.push({ id, name: name.trim() });
+  saveCategories(cats);
+  currentCategory = id;
+  renderCategoryTabs(); renderOfficialList();
+  showToast('✅ 分类已添加');
+}
+
+function showCategoryManager() {
+  if (!guardAdmin()) return;
+  const cats = loadCategories();
+  const catMap = getFullCategoryMap();
+  let body = '<div style="margin-bottom:16px;font-size:13px;color:var(--text-secondary);">管理药品说明书分类标签。抢救车药品说明书为默认分类，不可删除。</div>';
+  cats.forEach((c, i) => {
+    const count = Object.values(catMap).filter(v => v === c.id).length;
+    body += `<div class="cat-manage-item">
+      <input class="cat-manage-input" id="cat_name_${i}" value="${c.name}" ${c.id === 'rescue' ? 'disabled style="opacity:0.6"' : ''}>
+      <span style="font-size:12px;color:var(--text-secondary);">${count}种药品</span>
+      ${c.id !== 'rescue' ? `<button class="btn btn-danger btn-sm" onclick="deleteCategory('${c.id}')">删除</button>` : ''}
+    </div>`;
+  });
+  body += `<div style="margin-top:16px;display:flex;gap:8px;">
+    <button class="btn btn-primary btn-sm" onclick="saveCategoryNames()">💾 保存修改</button>
+    <button class="btn btn-outline btn-sm" onclick="closeCatModal()">关闭</button></div>`;
+  document.getElementById('catModalBody').innerHTML = body;
+  document.getElementById('catModal').classList.add('show');
+}
+function saveCategoryNames() {
+  const cats = loadCategories();
+  cats.forEach((c, i) => { const input = document.getElementById('cat_name_' + i); if (input && input.value.trim()) c.name = input.value.trim(); });
+  saveCategories(cats); renderCategoryTabs(); renderOfficialList(); closeCatModal(); showToast('✅ 分类已更新');
+}
+function deleteCategory(catId) {
+  const catMap = getFullCategoryMap();
+  Object.keys(catMap).forEach(key => { if (catMap[key] === catId) catMap[key] = 'other'; });
+  saveManualCategoryMap(catMap);
+  const cats = loadCategories().filter(c => c.id !== catId);
+  saveCategories(cats);
+  if (currentCategory === catId) currentCategory = 'other';
+  renderCategoryTabs(); renderOfficialList(); showCategoryManager(); showToast('✅ 分类已删除');
+}
+function closeCatModal() { document.getElementById('catModal').classList.remove('show'); }
+
+// ===== Drug Manuals List (with categories + move) =====
+function getAllManuals() {
+  const catMap = getFullCategoryMap();
+  const manuals = [];
+  OFFICIAL_MANUALS.forEach((m, i) => {
+    manuals.push({ type: 'official', index: i, name: m.name, spec: m.spec, categoryId: catMap['official_'+i] || 'rescue', key: 'official_'+i });
+  });
+  const officialMatchIds = new Set(OFFICIAL_MANUALS.map(m => m.matchId));
+  Object.keys(MED_MANUALS).forEach(id => {
+    const nId = parseInt(id);
+    if (!officialMatchIds.has(nId)) {
+      const m = MED_MANUALS[id];
+      manuals.push({ type: 'med', index: nId, name: m.name, spec: '', categoryId: catMap['med_'+id] || 'other', key: 'med_'+id });
+    }
+  });
+  // Custom manuals
+  const customs = loadCustomManuals();
+  customs.forEach(cm => {
+    manuals.push({ type: 'custom', index: -1, name: cm.name, spec: cm.spec || '', categoryId: catMap[cm.key] || 'other', key: cm.key });
+  });
+  return manuals;
+}
+
+function renderOfficialList() {
+  const allManuals = getAllManuals();
+  const filtered = allManuals.filter(m => m.categoryId === currentCategory);
+  const cats = loadCategories();
+  const admin = isAdmin();
+
+  if (filtered.length === 0) {
+    document.getElementById('officialList').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">该分类下暂无药品说明书</div></div>';
+    return;
+  }
+
+  // Batch delete bar (admin only)
+  let batchBar = admin ? `<div id="batchBar" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--danger-light);border-radius:var(--radius-sm);align-items:center;gap:8px;font-size:13px;">
+    <span id="batchCount" style="font-weight:600;color:var(--danger);">已选 0 项</span>
+    <span style="flex:1"></span>
+    <button class="btn btn-outline btn-sm" onclick="toggleSelectAll()" id="selectAllBtn">全选</button>
+    <button class="btn btn-danger btn-sm" onclick="batchDeleteManuals()">🗑️ 批量删除</button>
+    <button class="btn btn-outline btn-sm" onclick="cancelBatchSelect()">取消</button>
+  </div>` : '';
+
+  document.getElementById('officialList').innerHTML = batchBar + filtered.map(m => `
+    <div class="manual-item" data-name="${m.name}" data-key="${m.key}" style="border-left:4px solid ${m.type==='official'?'var(--primary)':m.type==='custom'?'var(--success)':'var(--text-secondary)'};">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+        ${admin ? `<input type="checkbox" class="manual-checkbox" data-key="${m.key}" onclick="event.stopPropagation();updateBatchBar()" style="flex-shrink:0;accent-color:var(--danger);width:16px;height:16px;cursor:pointer;">` : ''}
+        <div class="manual-item-left" style="flex:1;min-width:0;" onclick="openManualDetail('${m.key}')">
+          <div class="manual-item-name">${m.name}</div>
+          ${m.spec ? `<div class="manual-item-spec">规格：${m.spec}</div>` : ''}
+          ${m.type==='official' ? '<div class="manual-item-cat">📋 官方说明书</div>' : m.type==='custom' ? '<div class="manual-item-cat">📤 用户上传</div>' : ''}
+        </div>
+      </div>
+      ${admin ? `<div class="manual-item-actions">
+        <select class="manual-item-move" onchange="moveManualCategory('${m.key}', this.value)" title="移动到分类">
+          <option value="">移动到...</option>
+          ${cats.filter(c => c.id !== m.categoryId).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+        </select>
+        <button style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:14px;padding:2px 6px;border-radius:4px;transition:all 0.2s;" onclick="event.stopPropagation();deleteManual('${m.key}','${m.name}')" title="删除">🗑️</button>
+        <span style="color:var(--primary);font-size:16px;cursor:pointer;" onclick="event.stopPropagation();openManualDetail('${m.key}')">📄</span>
+      </div>` : `<div class="manual-item-actions"><span style="color:var(--primary);font-size:16px;cursor:pointer;" onclick="event.stopPropagation();openManualDetail('${m.key}')">📄</span></div>`}
+    </div>
+  `).join('');
+}
+
+function moveManualCategory(key, newCatId) {
+  if (!guardAdmin()) return;
+  if (!newCatId) return;
+  const catMap = getFullCategoryMap();
+  catMap[key] = newCatId;
+  saveManualCategoryMap(catMap);
+  renderOfficialList();
+  const cats = loadCategories();
+  const catName = cats.find(c => c.id === newCatId)?.name || newCatId;
+  showToast(`✅ 已移动到"${catName}"`);
+}
+
+// ===== Delete Manual =====
+function deleteManual(key, name) {
+  if (!guardAdmin()) return;
+  const isCustom = key.startsWith('custom_');
+  if (isCustom) {
+    if (!confirm(`确定删除"${name}"的说明书吗？此操作不可恢复。`)) return;
+    let customs = loadCustomManuals();
+    customs = customs.filter(c => c.key !== key);
+    saveCustomManuals(customs);
+    const catMap = getFullCategoryMap();
+    delete catMap[key];
+    saveManualCategoryMap(catMap);
+    // Also delete override if exists
+    const overrides = loadManualOverrides();
+    delete overrides[key];
+    saveManualOverrides(overrides);
+    renderOfficialList();
+    showToast('✅ 已删除');
+  } else {
+    const overrides = loadManualOverrides();
+    if (overrides[key]) {
+      if (!confirm(`确定清除"${name}"的用户修改吗？将恢复为原始说明书。`)) return;
+      delete overrides[key];
+      saveManualOverrides(overrides);
+      renderOfficialList();
+      showToast('✅ 已恢复原始说明书');
+    } else {
+      showToast('⚠️ 系统内置说明书不可删除');
+    }
+  }
+}
+
+// ===== Batch Select & Delete =====
+function updateBatchBar() {
+  const checks = document.querySelectorAll('.manual-checkbox:checked');
+  const bar = document.getElementById('batchBar');
+  if (checks.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('batchCount').textContent = `已选 ${checks.length} 项`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function toggleSelectAll() {
+  const checks = document.querySelectorAll('.manual-checkbox');
+  const allChecked = Array.from(checks).every(c => c.checked);
+  checks.forEach(c => c.checked = !allChecked);
+  updateBatchBar();
+  const btn = document.getElementById('selectAllBtn');
+  if (btn) btn.textContent = allChecked ? '全选' : '取消全选';
+}
+
+function cancelBatchSelect() {
+  document.querySelectorAll('.manual-checkbox').forEach(c => c.checked = false);
+  const bar = document.getElementById('batchBar');
+  if (bar) bar.style.display = 'none';
+}
+
+function batchDeleteManuals() {
+  if (!guardAdmin()) return;
+  const checks = document.querySelectorAll('.manual-checkbox:checked');
+  if (checks.length === 0) return;
+  const keys = Array.from(checks).map(c => c.dataset.key);
+  const names = keys.map(k => { const m = getManualByKey(k); return m?.name || k; });
+  if (!confirm(`确定删除以下 ${keys.length} 个说明书吗？\n\n${names.join('、')}\n\n（内置说明书仅清除修改）`)) return;
+  let customs = loadCustomManuals();
+  const overrides = loadManualOverrides();
+  const catMap = getFullCategoryMap();
+  keys.forEach(key => {
+    if (key.startsWith('custom_')) {
+      customs = customs.filter(c => c.key !== key);
+      delete catMap[key];
+    }
+    delete overrides[key];
+  });
+  saveCustomManuals(customs);
+  saveManualOverrides(overrides);
+  saveManualCategoryMap(catMap);
+  renderOfficialList();
+  showToast(`✅ 已处理 ${keys.length} 项`);
+}
+
+// ===== Delete Manual =====
+function deleteManual(key, name) {
+  // Only allow deleting custom manuals and overrides
+  const isCustom = key.startsWith('custom_');
+  const isOverride = key.startsWith('med_') || key.startsWith('official_');
+  
+  if (isCustom) {
+    if (!confirm(`确定删除"${name}"的说明书吗？此操作不可恢复。`)) return;
+    let customs = loadCustomManuals();
+    customs = customs.filter(c => c.key !== key);
+    saveCustomManuals(customs);
+    // Remove from category map
+    const catMap = getFullCategoryMap();
+    delete catMap[key];
+    saveManualCategoryMap(catMap);
+    renderOfficialList();
+    showToast('✅ 已删除');
+  } else if (isOverride) {
+    // For built-in manuals, we can only delete user overrides
+    const overrides = loadManualOverrides();
+    if (overrides[key]) {
+      if (!confirm(`确定删除"${name}"的用户修改内容吗？将恢复为原始说明书。`)) return;
+      delete overrides[key];
+      saveManualOverrides(overrides);
+      showToast('✅ 已恢复为原始说明书');
+    } else {
+      showToast('⚠️ 系统内置说明书不可删除，仅可清除用户修改');
+      return;
+    }
+    renderOfficialList();
+  }
+}
+
+// ===== Batch Select & Delete =====
+function updateBatchBar() {
+  const checks = document.querySelectorAll('.manual-checkbox:checked');
+  const bar = document.getElementById('batchBar');
+  if (checks.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('batchCount').textContent = `已选 ${checks.length} 项`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+function toggleSelectAll() {
+  const checks = document.querySelectorAll('.manual-checkbox');
+  const allChecked = Array.from(checks).every(c => c.checked);
+  checks.forEach(c => c.checked = !allChecked);
+  updateBatchBar();
+  const btn = document.getElementById('selectAllBtn');
+  if (btn) btn.textContent = allChecked ? '全选' : '取消全选';
+}
+
+function cancelBatchSelect() {
+  document.querySelectorAll('.manual-checkbox').forEach(c => c.checked = false);
+  const bar = document.getElementById('batchBar');
+  if (bar) bar.style.display = 'none';
+}
+
+function batchDeleteManuals() {
+  if (!guardAdmin()) return;
+  const checks = document.querySelectorAll('.manual-checkbox:checked');
+  if (checks.length === 0) return;
+  const keys = Array.from(checks).map(c => c.dataset.key);
+  const names = keys.map(k => {
+    const m = getManualByKey(k);
+    return m?.name || k;
+  });
+  if (!confirm(`确定删除以下 ${keys.length} 个说明书吗？\n\n${names.join('、')}\n\n（内置说明书仅清除用户修改）`)) return;
+  
+  let customs = loadCustomManuals();
+  const overrides = loadManualOverrides();
+  const catMap = getFullCategoryMap();
+  
+  keys.forEach(key => {
+    if (key.startsWith('custom_')) {
+      customs = customs.filter(c => c.key !== key);
+      delete catMap[key];
+    } else {
+      delete overrides[key];
+    }
+  });
+  
+  saveCustomManuals(customs);
+  saveManualOverrides(overrides);
+  saveManualCategoryMap(catMap);
+  renderOfficialList();
+  showToast(`✅ 已处理 ${keys.length} 项`);
+}
+
+function filterOfficialList() {
+  const q = document.getElementById('officialSearch').value.toLowerCase();
+  document.querySelectorAll('#officialList .manual-item').forEach(item => {
+    item.style.display = item.dataset.name.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function openManualDetail(key) {
+  const manual = getManualByKey(key);
+  const isOfficial = key.startsWith('official_');
+  let name = '', spec = '';
+  if (key.startsWith('official_')) {
+    const idx = parseInt(key.replace('official_',''));
+    name = OFFICIAL_MANUALS[idx]?.name || '未知';
+    spec = OFFICIAL_MANUALS[idx]?.spec || '';
+  } else if (key.startsWith('med_')) {
+    const id = key.replace('med_','');
+    name = MED_MANUALS[id]?.name || '未知';
+  } else if (key.startsWith('custom_')) {
+    const cm = loadCustomManuals().find(c => c.key === key);
+    name = cm?.name || '未知';
+    spec = cm?.spec || '';
+  }
+  showManualModal(key, name, spec, isOfficial);
+}
+
+// ===== Bulk Upload =====
+function showBulkUpload() {
+  if (!guardAdmin()) return;
+  document.getElementById('bulkUploadBody').innerHTML = `
+    <div style="padding:12px;">
+      <div style="font-size:13px;margin-bottom:8px;color:var(--text-secondary);">将药品说明书文本粘贴到下方，系统自动识别并添加到"未分类"分类：</div>
+      <textarea id="manualPasteText" style="width:100%;height:260px;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;resize:vertical;font-family:inherit;" placeholder="将药品说明书文本粘贴到这里...&#10;&#10;支持一次粘贴多个药品说明书，每个以"药品名称"开头即可自动拆分"></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="processManualPaste()">🔍 识别并导入</button>
+        <button class="btn btn-outline btn-sm" onclick="closeBulkUpload()">取消</button>
+      </div>
+      <div id="bulkUploadResult" style="margin-top:10px;"></div>
+    </div>
+  `;
+  document.getElementById('bulkUploadModal').classList.add('show');
+}
+function closeBulkUpload() { document.getElementById('bulkUploadModal').classList.remove('show'); }
+
+function handleBulkFileUpload(event) {
+  const files = event.target.files;
+  if (!files.length) return;
+  event.target.value = '';
+
+  const resultDiv = document.getElementById('bulkUploadResult');
+  if (!resultDiv) return;
+
+  const total = files.length;
+  const addedManuals = [];
+  let processed = 0;
+
+  function processNext() {
+    if (processed >= total) { finishBatch(); return; }
+    const file = files[processed];
+    const fileIdx = processed;
+    processed++;
+    resultDiv.innerHTML = `<div style="text-align:center;padding:16px;">⏳ 正在解析 (${processed}/${total})：${escHtml(file.name)}</div>`;
+    readDocumentFile(file).then(text => {
+      const multiParsed = parseMultipleManuals(text, file.name);
+      for (const parsed of multiParsed) {
+        const key = 'custom_' + Date.now() + '_' + fileIdx + '_' + addedManuals.length;
+        addedManuals.push({
+          key, name: parsed.name || file.name, spec: '',
+          indications: parsed.indications || '', usage: parsed.usage || '',
+          adverse: parsed.adverse || '', contraindications: parsed.contraindications || '',
+          precautions: parsed.precautions || '', source: file.name, addedAt: new Date().toISOString()
+        });
+      }
+      setTimeout(processNext, 0);
+    }).catch(err => {
+      console.error('File parse error:', file.name, err);
+      if (!window.__lastParseLog) window.__lastParseLog = 'File parse error: ' + err.message;
+      setTimeout(processNext, 0);
+    });
+  }
+
+  function finishBatch() {
+    if (addedManuals.length > 0) {
+      const customs = loadCustomManuals();
+      const catMap = getFullCategoryMap();
+      addedManuals.forEach(m => { customs.push(m); catMap[m.key] = 'unclassified'; });
+      saveCustomManuals(customs);
+      saveManualCategoryMap(catMap);
+      resultDiv.innerHTML = `<div style="background:var(--success-light);padding:12px;border-radius:8px;font-size:13px;">
+        ✅ 成功添加 ${addedManuals.length} 个药品说明书：<br>
+        ${addedManuals.map(m => '• ' + escHtml(m.name)).join('<br>')}
+      </div>`;
+      currentCategory = 'unclassified';
+      renderCategoryTabs(); renderOfficialList();
+    } else {
+      const logInfo = window.__lastParseLog || '无日志';
+      resultDiv.innerHTML = `<div style="background:var(--danger-light);padding:12px;border-radius:8px;font-size:13px;">
+        ⚠️ 未能识别任何药品说明书内容<br>
+        <details style="margin-top:8px;cursor:pointer;"><summary>查看解析日志</summary>
+        <pre style="margin-top:4px;padding:8px;background:#fff;border-radius:4px;font-size:11px;white-space:pre-wrap;max-height:200px;overflow:auto;">${escHtml(logInfo)}</pre>
+        </details>
+        <div style="margin-top:10px;">
+          <button class="btn btn-outline btn-sm" onclick="showManualPaste()">📝 手动粘贴说明书内容</button>
+        </div>
+      </div>`;
+    }
+  }
+
+  processNext();
+}
+
+// Manual paste fallback for drug manuals
+function showManualPaste() {
+  const resultDiv = document.getElementById('bulkUploadResult');
+  if (!resultDiv) return;
+  resultDiv.innerHTML = `<div style="padding:12px;">
+    <div style="font-size:13px;margin-bottom:8px;">如果自动解析失败，请将药品说明书文本内容粘贴到下方，系统将自动识别：</div>
+    <textarea id="manualPasteText" style="width:100%;height:200px;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;resize:vertical;" placeholder="将药品说明书文本粘贴到这里..."></textarea>
+    <div style="margin-top:8px;display:flex;gap:8px;">
+      <button class="btn btn-primary btn-sm" onclick="processManualPaste()">🔍 识别并导入</button>
+      <button class="btn btn-outline btn-sm" onclick="closeBulkUpload()">取消</button>
+    </div>
+  </div>`;
+}
+
+function processManualPaste() {
+  const textarea = document.getElementById('manualPasteText');
+  if (!textarea || !textarea.value.trim()) { showToast('请先粘贴内容'); return; }
+  const text = textarea.value.trim();
+  const resultDiv = document.getElementById('bulkUploadResult');
+  const multiParsed = parseMultipleManuals(text, '手动粘贴');
+  if (multiParsed.length > 0) {
+    const customs = loadCustomManuals();
+    const catMap = getFullCategoryMap();
+    multiParsed.forEach((parsed, idx) => {
+      const key = 'custom_' + Date.now() + '_manual_' + idx;
+      customs.push({
+        key, name: parsed.name || '药品' + (idx+1), spec: '',
+        indications: parsed.indications || '', usage: parsed.usage || '',
+        adverse: parsed.adverse || '', contraindications: parsed.contraindications || '',
+        precautions: parsed.precautions || '', source: '手动粘贴', addedAt: new Date().toISOString()
+      });
+      catMap[key] = 'unclassified';
+    });
+    saveCustomManuals(customs);
+    saveManualCategoryMap(catMap);
+    resultDiv.innerHTML = `<div style="background:var(--success-light);padding:12px;border-radius:8px;font-size:13px;">
+      ✅ 成功添加 ${multiParsed.length} 个药品说明书：<br>
+      ${multiParsed.map(m => '• ' + escHtml(m.name)).join('<br>')}
+    </div>`;
+    currentCategory = 'unclassified';
+    renderCategoryTabs(); renderOfficialList();
+  } else {
+    resultDiv.innerHTML = `<div style="background:var(--danger-light);padding:12px;border-radius:8px;font-size:13px;">
+      ⚠️ 未能识别药品说明书结构。请确保文本包含"药品名称"、"适应症"、"用法用量"等标题。
+    </div>`;
+  }
+}
+
+// ===== History =====
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const empty = document.getElementById('historyEmpty');
+  const dateGroups = {};
+  Object.keys(shiftData).forEach(key => {
+    const parts = key.split('_');
+    const dateKey = parts[0];
+    const shiftType = parts.slice(1).join('_') || '白班';
+    if (!dateGroups[dateKey]) dateGroups[dateKey] = [];
+    dateGroups[dateKey].push({ shiftType, data: shiftData[key], key });
+  });
+  const sortedDates = Object.keys(dateGroups).sort().reverse();
+  if (sortedDates.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+  list.innerHTML = sortedDates.map(dateKey => {
+    const d = new Date(dateKey);
+    const shifts = dateGroups[dateKey];
+    const shiftOrder = {'白班':0,'前夜':1,'后夜':2};
+    shifts.sort((a,b) => (shiftOrder[a.shiftType]??3) - (shiftOrder[b.shiftType]??3));
+    let shiftCards = shifts.map(s => {
+      const data = s.data;
+      const cls = SHIFT_CLASSES[s.shiftType] || 'day';
+      const pStr = data.personnel?.length > 0 ? data.personnel.join('、') : '<span style="color:var(--text-secondary)">未登记</span>';
+      const p2Str = data.personnel2?.length > 0 ? data.personnel2.join('、') : '<span style="color:var(--text-secondary)">未登记</span>';
+      let missingHtml = '';
+      if (data.missing) {
+        const valid = data.missing.filter(m => m.medicineId);
+        if (valid.length > 0) {
+          missingHtml = valid.map(m => {
+            const med = MEDICINES.find(x => x.id == m.medicineId);
+            return `<div class="history-missing-item"><strong>${med?.name||'未知'}</strong> ×${m.quantity||1}${med?med.unit:''}
+              <br><span class="history-missing-reason">原因：${m.reason||'未填写'}</span>
+              ${m.note ? `<br><span class="history-missing-reason">备注：${m.note}</span>` : ''}</div>`;
+          }).join('');
+        }
+      }
+      return `<div class="history-shift-card">
+        <div class="history-shift-header ${cls}">
+          <span class="shift-badge ${cls}">${s.shiftType}</span>
+          ${data.savedAt ? `<span style="font-size:11px;opacity:0.7;margin-left:8px;">保存于 ${new Date(data.savedAt).toLocaleString('zh-CN')}</span>` : ''}
+          ${isAdmin() ? `<button class="history-delete-btn" onclick="deleteHistory('${s.key}')">🗑️ 删除</button>` : ''}
+        </div>
+        <div class="history-shift-body">
+          <div class="history-detail-row"><span class="history-detail-label">👩‍⚕️ 交班人员</span><span>${pStr}</span></div>
+          <div class="history-detail-row"><span class="history-detail-label">👨‍⚕️ 接班人员</span><span>${p2Str}</span></div>
+          ${missingHtml ? `<div class="history-detail-row"><span class="history-detail-label">⚠️ 缺失药品</span></div>${missingHtml}` : ''}
+          ${data.note ? `<div class="history-detail-row"><span class="history-detail-label">📝 备注</span><span>${data.note}</span></div>` : ''}
+        </div></div>`;
+    }).join('');
+    return `<div class="history-group"><div class="history-group-date">📅 ${dateKey} <span class="date-weekday">${weekdays[d.getDay()]}</span></div>${shiftCards}</div>`;
+  }).join('');
+}
+function deleteHistory(key) {
+  if (!guardAdmin()) return;
+  if (!confirm('确定删除该交班记录吗？')) return;
+  delete shiftData[key]; saveShiftData(); renderHistory(); renderMedicineTable();
+  if (key === getShiftKey()) loadCurrentShift();
+  showToast('记录已删除');
+}
+
+// ===== Page Switch =====
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelector(`.tab[data-page="${page}"]`).classList.add('active');
+  if (page === 'medicine') renderMedicineTable();
+  if (page === 'history') renderHistory();
+}
+
+// ===== Toast =====
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg; toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// ===== Modal close on overlay click =====
+document.getElementById('infoModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('catModal').addEventListener('click', function(e) { if (e.target === this) closeCatModal(); });
+document.getElementById('bulkUploadModal').addEventListener('click', function(e) { if (e.target === this) closeBulkUpload(); });
+
+function closeModal() {
+  editingManualKey = null;
+  document.getElementById('modalFooter').style.display = 'none';
+  document.getElementById('infoModal').classList.remove('show');
+}
+
+// ===== Cloud Sync =====
+const SYNC_STORAGE_KEYS = [
+  'nurse_shift_data',
+  'nurse_manual_categories',
+  'nurse_manual_cat_map',
+  'nurse_custom_manuals',
+  'nurse_manual_overrides',
+  'nurse_missing_tracker',
+  'nurse_users'
+];
+const WEBDAV_BASE = 'https://dav.jianguoyun.com/dav/';
+const SYNC_FILE_NAME = 'icu-nurse-shift-data.json';
+
+function getSyncConfig() {
+  try { const d = localStorage.getItem('nurse_sync_config'); return d ? JSON.parse(d) : {}; } catch(e) { return {}; }
+}
+function saveSyncConfig(cfg) { localStorage.setItem('nurse_sync_config', JSON.stringify(cfg)); }
+
+function exportAllData() {
+  const data = { _version: '3.1', _exportTime: new Date().toISOString() };
+  SYNC_STORAGE_KEYS.forEach(k => { try { const v = localStorage.getItem(k); if (v) data[k] = JSON.parse(v); } catch(e) {} });
+  return data;
+}
+
+function importAllData(data) {
+  if (!data || !data._version) throw new Error('无效的数据文件');
+  SYNC_STORAGE_KEYS.forEach(k => {
+    if (data[k] !== undefined) { localStorage.setItem(k, JSON.stringify(data[k])); }
+  });
+}
+
+function openSyncModal() {
+  if (!guardAdmin()) return;
+  const cfg = getSyncConfig();
+  const lastSync = cfg.lastSyncTime ? new Date(cfg.lastSyncTime).toLocaleString('zh-CN') : '';
+  document.getElementById('syncContent').innerHTML = `
+    <div class="sync-section">
+      <div class="sync-section-title">📋 复制/粘贴同步 <span style="background:#1e8e3e;color:white;font-size:11px;padding:2px 6px;border-radius:4px;margin-left:4px;">推荐</span></div>
+      <div class="sync-section-desc">最简单！复制数据文本 → 微信发给手机 → 粘贴导入，无需任何账号</div>
+      <div class="sync-btn-group">
+        <div class="sync-btn" onclick="copyDataToClipboard()">
+          <div class="sync-btn-icon">📋</div>
+          <div class="sync-btn-label">复制数据</div>
+          <div class="sync-btn-hint">复制到剪贴板</div>
+        </div>
+        <div class="sync-btn" onclick="showPasteArea()">
+          <div class="sync-btn-icon">📥</div>
+          <div class="sync-btn-label">粘贴导入</div>
+          <div class="sync-btn-hint">从剪贴板粘贴</div>
+        </div>
+      </div>
+      <div id="pasteArea" style="display:none;margin-top:12px;">
+        <textarea id="pasteInput" class="sync-form-input" style="height:100px;resize:vertical;font-family:monospace;font-size:12px;" placeholder="在此粘贴数据文本..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-primary btn-sm" onclick="importFromPaste()">导入数据</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('pasteArea').style.display='none'">取消</button>
+        </div>
+      </div>
+      <div id="clipboardStatus"></div>
+    </div>
+    <div class="sync-divider"></div>
+    <div class="sync-section">
+      <div class="sync-section-title">📁 文件导出/导入</div>
+      <div class="sync-section-desc">导出为JSON文件，通过微信/邮件发送后在另一台设备上导入</div>
+      <div class="sync-btn-group">
+        <div class="sync-btn" onclick="exportToFile()">
+          <div class="sync-btn-icon">📤</div>
+          <div class="sync-btn-label">导出文件</div>
+          <div class="sync-btn-hint">下载JSON文件</div>
+        </div>
+        <div class="sync-btn" onclick="document.getElementById('syncFileInput').click()">
+          <div class="sync-btn-icon">📥</div>
+          <div class="sync-btn-label">导入文件</div>
+          <div class="sync-btn-hint">选择JSON文件</div>
+        </div>
+      </div>
+      <input type="file" id="syncFileInput" accept=".json" style="display:none" onchange="importFromFile(event)">
+    </div>
+    <div class="sync-divider"></div>
+    <div class="sync-section">
+      <div class="sync-section-title">☁️ 坚果云WebDAV <span style="background:var(--text-secondary);color:white;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:4px;">实验性</span></div>
+      <div class="sync-section-desc">需坚果云账号，受浏览器CORS限制可能无法使用</div>
+      <div class="sync-form-group">
+        <div class="sync-form-label">坚果云账号</div>
+        <input class="sync-form-input" id="syncUser" type="text" placeholder="邮箱/手机号" value="${cfg.username || ''}">
+      </div>
+      <div class="sync-form-group">
+        <div class="sync-form-label">应用密码</div>
+        <input class="sync-form-input" id="syncPass" type="password" placeholder="应用密码（非登录密码）" value="${cfg.password || ''}">
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">💡 坚果云 → 账户设置 → 安全选项 → 第三方应用管理中添加</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-primary btn-sm" onclick="webdavUpload()" style="flex:1;">⬆️ 上传</button>
+        <button class="btn btn-outline btn-sm" onclick="webdavDownload()" style="flex:1;">⬇️ 下载</button>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="webdavTest()" style="width:100%;margin-top:8px;font-size:12px;">🔍 测试连接</button>
+      ${lastSync ? '<div class="sync-last-time">🕐 上次同步：' + lastSync + '</div>' : ''}
+      <div id="syncStatus"></div>
+    </div>
+    <div class="sync-divider"></div>
+    <div class="sync-guide">
+      <div style="font-weight:600;margin-bottom:6px;">📖 同步步骤</div>
+      <b>方式一：复制粘贴（最简单）</b><br>
+      1. 电脑上点"复制数据" → 数据已复制到剪贴板<br>
+      2. 打开微信，把数据粘贴发给"文件传输助手"<br>
+      3. 手机上长按消息复制 → 打开本页面 → 点"粘贴导入"<br><br>
+      <b>方式二：文件导出导入</b><br>
+      1. 电脑上点"导出文件" → 保存JSON文件<br>
+      2. 微信发送文件到手机<br>
+      3. 手机上打开本页面 → 点"导入文件"选择JSON
+    </div>
+  `;
+  document.getElementById('syncModal').classList.add('show');
+}
+
+function copyDataToClipboard() {
+  try {
+    const data = exportAllData();
+    const jsonStr = JSON.stringify(data);
+    const encoded = 'ICUV3:' + btoa(unescape(encodeURIComponent(jsonStr)));
+    navigator.clipboard.writeText(encoded).then(() => {
+      document.getElementById('clipboardStatus').innerHTML = '<div class="sync-status success">✅ 数据已复制到剪贴板！<br><span style="font-size:11px;">现在打开微信，粘贴发给"文件传输助手"，手机上复制后点"粘贴导入"即可</span></div>';
+    }).catch(() => {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = encoded;
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      document.getElementById('clipboardStatus').innerHTML = '<div class="sync-status success">✅ 数据已复制到剪贴板！<br><span style="font-size:11px;">现在打开微信，粘贴发给"文件传输助手"，手机上复制后点"粘贴导入"即可</span></div>';
+    });
+  } catch(e) {
+    document.getElementById('clipboardStatus').innerHTML = '<div class="sync-status error">❌ 复制失败：' + e.message + '</div>';
+  }
+}
+
+function showPasteArea() {
+  document.getElementById('pasteArea').style.display = 'block';
+  document.getElementById('pasteInput').value = '';
+  document.getElementById('pasteInput').focus();
+}
+
+function importFromPaste() {
+  const text = document.getElementById('pasteInput').value.trim();
+  if (!text) { showToast('请先粘贴数据'); return; }
+  try {
+    let data;
+    if (text.startsWith('ICUV3:')) {
+      const jsonStr = decodeURIComponent(escape(atob(text.substring(6))));
+      data = JSON.parse(jsonStr);
+    } else if (text.trim().startsWith('{')) {
+      data = JSON.parse(text);
+    } else {
+      throw new Error('无法识别的数据格式');
+    }
+    if (!data._version) { showToast('❌ 无效的数据格式'); return; }
+    if (confirm('即将用导入的数据覆盖本地数据。\n\n数据导出时间：' + (data._exportTime ? new Date(data._exportTime).toLocaleString('zh-CN') : '未知') + '\n\n确定要覆盖本地数据吗？')) {
+      importAllData(data);
+      showToast('✅ 数据导入成功');
+      init();
+      closeSyncModal();
+    }
+  } catch(e) {
+    showToast('❌ 数据解析失败：' + e.message);
+  }
+}
+
+function closeSyncModal() {
+  document.getElementById('syncModal').classList.remove('show');
+}
+document.getElementById('syncModal').addEventListener('click', function(e) { if (e.target === this) closeSyncModal(); });
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('syncStatus');
+  if (el) el.innerHTML = '<div class="sync-status ' + type + '">' + msg + '</div>';
+}
+
+function getWebDAVAuth() {
+  const user = document.getElementById('syncUser').value.trim();
+  const pass = document.getElementById('syncPass').value.trim();
+  if (!user || !pass) { setSyncStatus('error', '❌ 请填写坚果云账号和应用密码'); return null; }
+  saveSyncConfig({ username: user, password: pass });
+  return 'Basic ' + btoa(user + ':' + pass);
+}
+
+async function webdavRequest(method, path, body) {
+  const auth = getWebDAVAuth();
+  if (!auth) return null;
+  const url = WEBDAV_BASE + path;
+  const opts = { method, headers: { 'Authorization': auth } };
+  if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  try {
+    const resp = await fetch(url, opts);
+    return resp;
+  } catch(e) {
+    if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
+      setSyncStatus('error', '❌ 网络连接失败，可能是CORS限制。请尝试：<br>1. 用Chrome浏览器直接打开HTML文件<br>2. 或使用下方"本地导出/导入"方式');
+    } else {
+      setSyncStatus('error', '❌ 请求失败：' + e.message);
+    }
+    return null;
+  }
+}
+
+async function webdavTest() {
+  setSyncStatus('info', '⏳ 正在测试连接...');
+  const resp = await webdavRequest('PROPFIND', '');
+  if (!resp) return;
+  if (resp.ok || resp.status === 207) {
+    setSyncStatus('success', '✅ 连接成功！坚果云WebDAV可用');
+  } else if (resp.status === 401) {
+    setSyncStatus('error', '❌ 认证失败：请检查账号和应用密码是否正确');
+  } else {
+    setSyncStatus('warning', '⚠️ 服务器返回状态码：' + resp.status);
+  }
+}
+
+async function webdavUpload() {
+  setSyncStatus('info', '⏳ 正在上传数据到坚果云...');
+  const data = exportAllData();
+  const resp = await webdavRequest('PUT', SYNC_FILE_NAME, data);
+  if (!resp) return;
+  if (resp.ok || resp.status === 201 || resp.status === 204) {
+    const cfg = getSyncConfig();
+    cfg.lastSyncTime = new Date().toISOString();
+    cfg.lastSyncDir = 'upload';
+    saveSyncConfig(cfg);
+    setSyncStatus('success', '✅ 上传成功！数据已保存到坚果云<br><span style="font-size:11px;">在其他设备上点"从云端下载"即可获取</span>');
+  } else if (resp.status === 401) {
+    setSyncStatus('error', '❌ 认证失败：请检查账号和应用密码');
+  } else {
+    const text = await resp.text().catch(() => '');
+    setSyncStatus('error', '❌ 上传失败（状态码：' + resp.status + '）' + (text ? '<br>' + text.substring(0, 200) : ''));
+  }
+}
+
+async function webdavDownload() {
+  setSyncStatus('info', '⏳ 正在从坚果云下载数据...');
+  const resp = await webdavRequest('GET', SYNC_FILE_NAME);
+  if (!resp) return;
+  if (resp.ok) {
+    try {
+      const data = await resp.json();
+      if (!data._version) { setSyncStatus('error', '❌ 云端数据格式无效'); return; }
+      const localData = exportAllData();
+      const localTime = localData._exportTime || '';
+      const cloudTime = data._exportTime || '';
+      const cfg = getSyncConfig();
+      if (cfg.lastSyncDir === 'upload' && cloudTime <= (cfg.lastSyncTime || '')) {
+        // Cloud data is same or older than what we uploaded, no need to overwrite
+      }
+      if (confirm('即将用云端数据覆盖本地数据。\n\n云端数据时间：' + (cloudTime ? new Date(cloudTime).toLocaleString('zh-CN') : '未知') + '\n本地数据时间：' + (localTime ? new Date(localTime).toLocaleString('zh-CN') : '未知') + '\n\n确定要覆盖本地数据吗？')) {
+        importAllData(data);
+        cfg.lastSyncTime = new Date().toISOString();
+        cfg.lastSyncDir = 'download';
+        saveSyncConfig(cfg);
+        setSyncStatus('success', '✅ 下载成功！本地数据已更新');
+        init();
+      } else {
+        setSyncStatus('info', 'ℹ️ 已取消下载');
+      }
+    } catch(e) {
+      setSyncStatus('error', '❌ 解析云端数据失败：' + e.message);
+    }
+  } else if (resp.status === 404) {
+    setSyncStatus('warning', '⚠️ 云端暂无数据，请先在一台设备上"上传到云端"');
+  } else if (resp.status === 401) {
+    setSyncStatus('error', '❌ 认证失败：请检查账号和应用密码');
+  } else {
+    setSyncStatus('error', '❌ 下载失败（状态码：' + resp.status + '）');
+  }
+}
+
+function exportToFile() {
+  const data = exportAllData();
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'icu-shift-data-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ 数据已导出');
+}
+
+function importFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data._version) { showToast('❌ 无效的数据文件'); return; }
+      if (confirm('即将用导入的数据覆盖本地数据。\n\n文件导出时间：' + (data._exportTime ? new Date(data._exportTime).toLocaleString('zh-CN') : '未知') + '\n\n确定要覆盖本地数据吗？')) {
+        importAllData(data);
+        showToast('✅ 数据导入成功');
+        init();
+        closeSyncModal();
+      }
+    } catch(err) {
+      showToast('❌ 文件解析失败：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ===== Cloud Sync (Supabase) =====
+const CloudSync = {
+  client: null,
+  enabled: false,
+  _pushing: false,
+
+  getConfig() {
+    const defaults = {url:'https://uwmeblmmfuusxrcgrcsb.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3bWVibG1tZnV1c3hyY2dyY3NiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMTE1OTAsImV4cCI6MjA5NTc4NzU5MH0.N0koO-OvXm_TQ0GsTbnItzi1kKoqCwb5_JzHD1VBuV0'};
+    try {
+      const d = localStorage.getItem('nurse_supabase_config');
+      if (d) { const saved = JSON.parse(d); return {url: saved.url || defaults.url, key: saved.key || defaults.key}; }
+      return defaults;
+    } catch(e) { return defaults; }
+  },
+  saveConfig(cfg) { localStorage.setItem('nurse_supabase_config', JSON.stringify(cfg)); },
+
+  async init() {
+    const cfg = this.getConfig();
+    if (!cfg.url || !cfg.key) { this.enabled = false; console.warn('⚠ Supabase not configured'); return; }
+    if (!window.supabase) { this.enabled = false; console.warn('⚠ Supabase CDN not loaded'); return; }
+    try {
+      this.client = window.supabase.createClient(cfg.url, cfg.key);
+      // Test connection
+      const { error } = await this.client.from('app_data').select('key').limit(1);
+      if (error) throw error;
+      this.enabled = true;
+      console.log('☁️ Supabase connected');
+      await this.pull();
+      this.setupRealtime();
+    } catch(e) {
+      console.warn('☁️ Supabase not available, using offline mode:', e.message);
+      this.enabled = false;
+    }
+  },
+
+  async pull() {
+    if (!this.enabled) return;
+    try {
+      const { data, error } = await this.client.from('app_data').select('*');
+      if (error) throw error;
+      if (data && data.length > 0) {
+        data.forEach(row => {
+          try { localStorage.setItem(row.key, JSON.stringify(row.value)); } catch(e) {}
+        });
+        console.log('☁️ Pulled', data.length, 'records from cloud');
+      }
+    } catch(e) {
+      console.error('☁️ Pull failed:', e.message);
+    }
+  },
+
+  async push(key) {
+    if (!this.enabled || this._pushing) return;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const value = JSON.parse(raw);
+      this._pushing = true;
+      await this.client.from('app_data').upsert({
+        key,
+        value,
+        updated_at: new Date().toISOString(),
+        updated_by: currentUser ? currentUser.username : ''
+      }, { onConflict: 'key' });
+    } catch(e) {
+      console.error('☁️ Push failed for', key, e.message);
+    } finally {
+      this._pushing = false;
+    }
+  },
+
+  async pushAll() {
+    if (!this.enabled) return;
+    for (const key of SYNC_STORAGE_KEYS) {
+      await this.push(key);
+    }
+    showToast('✅ 数据已同步到云端');
+  },
+
+  setupRealtime() {
+    if (!this.enabled) return;
+    try {
+      this.client.channel('app_data_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'app_data' }, (payload) => {
+          if (this._pushing) return; // Ignore our own changes
+          const row = payload.new;
+          if (row && row.key) {
+            try { localStorage.setItem(row.key, JSON.stringify(row.value)); } catch(e) {}
+            // Refresh affected views
+            if (row.key === 'nurse_shift_data') { loadShiftData(); renderHistory(); renderMedicineTable(); if (document.getElementById('page-shift').classList.contains('active')) loadCurrentShift(); }
+            else if (row.key === 'nurse_missing_tracker') { renderMedicineTable(); }
+            else if (row.key === 'nurse_custom_manuals' || row.key === 'nurse_manual_overrides' || row.key === 'nurse_manual_cat_map' || row.key === 'nurse_manual_categories') { renderCategoryTabs(); renderOfficialList(); }
+            else if (row.key === 'nurse_users') { /* no immediate action needed */ }
+            console.log('☁️ Real-time update:', row.key);
+          }
+        })
+        .subscribe();
+    } catch(e) {
+      console.error('☁️ Realtime setup failed:', e.message);
+    }
+  }
+};
+
+// ===== Supabase Setup UI =====
+function openSupabaseSetup() {
+  document.getElementById('userMenu').style.display = 'none';
+  if (!guardAdmin()) return;
+  const cfg = CloudSync.getConfig();
+  const connected = CloudSync.enabled;
+  document.getElementById('supabaseModalBody').innerHTML = `
+    <div style="margin-bottom:16px;">
+      ${connected ? '<div class="sync-status success" style="margin-bottom:16px;">✅ 已连接Supabase云数据库，在线模式运行中</div>' : '<div class="sync-status warning" style="margin-bottom:16px;">⚠️ 未配置云数据库，当前为离线模式</div>'}
+      <div class="sync-form-group">
+        <div class="sync-form-label">Supabase 项目 URL</div>
+        <input class="sync-form-input" id="sbUrl" type="text" placeholder="https://xxxxx.supabase.co" value="${cfg.url || ''}">
+      </div>
+      <div class="sync-form-group">
+        <div class="sync-form-label">Anon Public Key</div>
+        <input class="sync-form-input" id="sbKey" type="text" placeholder="eyJhbGciOiJIUzI1NiIs..." value="${cfg.key || ''}">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-primary btn-sm" onclick="testSupabase()" style="flex:1;">🔍 测试连接</button>
+        <button class="btn btn-outline btn-sm" onclick="saveSupabaseConfig()" style="flex:1;">💾 保存配置</button>
+      </div>
+      ${connected ? '<button class="btn btn-primary btn-sm" onclick="CloudSync.pushAll()" style="width:100%;margin-top:8px;">⬆️ 全量同步到云端</button>' : ''}
+      <div id="sbStatus"></div>
+    </div>
+    <div class="sync-divider"></div>
+    <div class="sync-guide">
+      <div style="font-weight:600;margin-bottom:8px;">📖 Supabase 部署步骤</div>
+      <b>第一步：注册 Supabase</b><br>
+      1. 打开 <a href="https://supabase.com" target="_blank" style="color:var(--primary)">supabase.com</a> 注册免费账号<br>
+      2. 点击 "New Project" 创建项目，填写项目名和数据库密码<br>
+      3. 选择最近的区域（如 Northeast Asia），等1-2分钟创建完成<br><br>
+      <b>第二步：创建数据表</b><br>
+      1. 在项目里点 "SQL Editor"<br>
+      2. 粘贴以下SQL并点 "Run"：<br>
+      <textarea style="width:100%;height:140px;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:8px;margin-top:4px;resize:vertical;" readonly>CREATE TABLE app_data (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_by TEXT
+);
+
+ALTER TABLE app_data DISABLE ROW LEVEL SECURITY;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE app_data;</textarea>
+      <br><br>
+      <b>第三步：获取连接信息</b><br>
+      1. 点左侧 "Settings" → "API"<br>
+      2. 复制 "Project URL" 填到上方<br>
+      3. 复制 "anon public" key 填到上方<br>
+      4. 点 "测试连接" → 显示成功后点 "保存配置"<br><br>
+      <b>第四步：部署网页</b><br>
+      将本HTML文件放到任何网站服务器上即可，所有人用同一网址访问，数据实时同步！
+    </div>
+  `;
+  document.getElementById('supabaseModal').classList.add('show');
+}
+function closeSupabaseModal() { document.getElementById('supabaseModal').classList.remove('show'); }
+document.getElementById('supabaseModal').addEventListener('click', function(e) { if (e.target === this) closeSupabaseModal(); });
+
+async function testSupabase() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  const statusEl = document.getElementById('sbStatus');
+  if (!url || !key) { statusEl.innerHTML = '<div class="sync-status error">❌ 请填写URL和Key</div>'; return; }
+  statusEl.innerHTML = '<div class="sync-status info">⏳ 正在测试连接...</div>';
+  try {
+    const testClient = window.supabase.createClient(url, key);
+    const { data, error } = await testClient.from('app_data').select('key').limit(1);
+    if (error) throw error;
+    statusEl.innerHTML = '<div class="sync-status success">✅ 连接成功！Supabase数据库可用</div>';
+  } catch(e) {
+    statusEl.innerHTML = '<div class="sync-status error">❌ 连接失败：' + e.message + '<br><span style="font-size:11px;">请检查URL和Key是否正确，以及是否已创建app_data表</span></div>';
+  }
+}
+
+function saveSupabaseConfig() {
+  const url = document.getElementById('sbUrl').value.trim();
+  const key = document.getElementById('sbKey').value.trim();
+  if (!url || !key) { showToast('请填写完整配置'); return; }
+  CloudSync.saveConfig({ url, key });
+  showToast('✅ 配置已保存，刷新页面后生效');
+}
+
+// Override save functions to push to cloud
+const _origSaveShiftData = saveShiftData;
+saveShiftData = function() { _origSaveShiftData(); CloudSync.push('nurse_shift_data'); };
+
+const _origSaveCategories = saveCategories;
+saveCategories = function(cats) { _origSaveCategories(cats); CloudSync.push('nurse_manual_categories'); };
+
+const _origSaveCatMap = saveManualCategoryMap;
+saveManualCategoryMap = function(map) { _origSaveCatMap(map); CloudSync.push('nurse_manual_cat_map'); };
+
+const _origSaveCustomManuals = saveCustomManuals;
+saveCustomManuals = function(manuals) { _origSaveCustomManuals(manuals); CloudSync.push('nurse_custom_manuals'); };
+
+const _origSaveOverrides = saveManualOverrides;
+saveManualOverrides = function(ov) { _origSaveOverrides(ov); CloudSync.push('nurse_manual_overrides'); };
+
+const _origSaveTracker = saveMissingTracker;
+saveMissingTracker = function(tracker) { _origSaveTracker(tracker); CloudSync.push('nurse_missing_tracker'); };
+
+const _origSaveUsers = saveUsers;
+saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
+
+// Boot: auto-login if session exists, otherwise show login screen
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.10'); } catch(e) { console.error('❌ 启动失败:', e); }
+</script>
+</body>
+</html>
