@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -453,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.21</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.22</span>
   </div>
 </div>
 <div class="tabs">
@@ -2630,12 +2633,16 @@ function processManualPaste() {
       });
       catMap[key] = 'unclassified';
     });
+    addedCount = customs.length - (loadCustomManuals().length - multiParsed.length + skippedNames.length);
     saveCustomManuals(customs);
     saveManualCategoryMap(catMap);
-    resultDiv.innerHTML = `<div style="background:var(--success-light);padding:12px;border-radius:8px;font-size:13px;">
-      ✅ 成功添加 ${multiParsed.length} 个药品说明书：<br>
-      ${multiParsed.map(m => '• ' + escHtml(m.name)).join('<br>')}
+    const addedNames = multiParsed.filter(m => !skippedNames.includes(m.name || '未知')).map(m => m.name || '未知');
+    let resultHtml = `<div style="background:var(--success-light);padding:12px;border-radius:8px;font-size:13px;">
+      ✅ 成功添加 ${addedNames.length} 个药品说明书${skippedNames.length > 0 ? '，跳过 ' + skippedNames.length + ' 个重复' : ''}：<br>
+      ${addedNames.map(n => '• ' + escHtml(n)).join('<br>')}
+      ${skippedNames.length > 0 ? '<br><br>⚠️ 以下名称已存在被跳过：<br>' + skippedNames.map(n => '• ' + escHtml(n)).join('<br>') : ''}
     </div>`;
+    resultDiv.innerHTML = resultHtml;
     currentCategory = 'unclassified';
     renderCategoryTabs(); renderOfficialList();
   } else {
@@ -3263,7 +3270,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.21'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.22'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
