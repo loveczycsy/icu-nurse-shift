@@ -2175,41 +2175,43 @@ function parseManualText(text, filename) {
 function parseMultipleManuals(text, filename) {
   if (!text || text.trim().length < 20) return [];
   
-  // Split by "药品名称" markers (【药品名称】 or 药品名称：)
+  // Split by "药品名称" markers
   const blocks = [];
-  const splitRegex = /(?:^|\n)(?=【?药品名称[】:：])/g;
+  const splitRegex = /(?:^|\n)(?=【?药品名称[】:：]])/g;
   const parts = text.split(splitRegex).filter(p => p.trim());
   
   if (parts.length === 0) {
-    // No drug name markers - try treating as single drug
     const parsed = parseManualText(text, filename);
-    if (parsed) {
-      // Try to find drug name from first 【】 or [] bracket, or from first line
+    if (parsed && parsed.sections && parsed.sections.length > 0) {
       let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
-  const firstNameMatch = text.match(/^【([^】]+)】/);
-      if (firstNameMatch) drugName = firstNameMatch[1].replace(/^药品名称[：:】\]]\s*/,'').trim();
+      for (const s of parsed.sections) {
+        if (s.title === '药品名称') { drugName = s.content.split(/[\n，,]/)[0].trim(); break; }
+      }
       return [{ name: drugName, ...parsed }];
     }
     return [];
   }
 
   for (const part of parts) {
-    // Extract drug name
     let name = '';
-    const nameMatch = part.match(/药品名称[】\]:：]\s*(\S[^\n【\[]*)/);
-    if (nameMatch) name = nameMatch[1].trim();
+    // Extract name from 【药品名称】 pattern
+    const nameBrMatch = part.match(/【药品名称】[：:]*\s*(\S[^\n【]*)/);
+    if (nameBrMatch) name = nameBrMatch[1].trim();
     if (!name) {
-  const brMatch = part.match(/^【([^】]+)】/);
-      if (brMatch) name = brMatch[1].replace(/^药品名称[：:]/,'').trim();
+      const brMatch = part.match(/^【([^】]+)】/);
+      if (brMatch) name = brMatch[1].replace(/^药品名称[：:]+/, '').trim();
     }
-    if (!name) {
-      const firstLine = part.split('\n')[0].trim();
-      if (firstLine.length > 1 && firstLine.length < 60) name = firstLine;
-    }
-    name = name.replace(/^药品名称[：:】\]]\s*/, '').trim();
+    // Strip any leading colons/冒号 as safety net
+    name = name.replace(/^[：:]+/, '').trim();
     
     const parsed = parseManualText(part, filename);
-    if (parsed && Object.keys(parsed.sections || {}).length > 0) {
+    if (parsed && parsed.sections && parsed.sections.length > 0) {
+      // If still no name, try getting it from 药品名称 section
+      if (!name) {
+        for (const s of parsed.sections) {
+          if (s.title === '药品名称') { name = s.content.split(/[\n，,]/)[0].trim(); break; }
+        }
+      }
       blocks.push({ name: name || '未知药品', ...parsed });
     }
   }
