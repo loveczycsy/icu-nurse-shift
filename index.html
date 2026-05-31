@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>重症医学科护士交班系统</title>
+<title>重症医学科药品交班系统</title>
 <style>
 :root {
   --primary: #1a73e8;
@@ -417,7 +417,7 @@ body {
   <div style="background:white;border-radius:16px;padding:40px 36px;width:360px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
     <div style="text-align:center;margin-bottom:28px;">
       <div style="width:60px;height:60px;background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:12px;">💊</div>
-      <h2 style="font-size:20px;font-weight:600;color:#202124;">重症医学科护士交班系统</h2>
+      <h2 style="font-size:20px;font-weight:600;color:#202124;">重症医学科药品交班系统</h2>
       <div style="font-size:13px;color:#5f6368;margin-top:4px;">请登录以继续</div>
     </div>
     <div style="margin-bottom:16px;">
@@ -437,7 +437,7 @@ body {
 <div class="header">
   <div class="header-left">
     <div class="header-icon">💊</div>
-    <div><h1>重症医学科护士交班系统</h1><div class="header-sub">病区备用药品管理</div></div>
+    <div><h1>重症医学科药品交班系统</h1><div class="header-sub">病区备用药品管理</div></div>
   </div>
   <div class="header-right">
     <button onclick="openSyncModal()" style="background:rgba(255,255,255,0.2);border:none;color:white;padding:6px 12px;border-radius:16px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:4px;transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">☁️ 同步</button>
@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.12</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.13</span>
   </div>
 </div>
 <div class="tabs">
@@ -3313,7 +3313,7 @@ const _origSaveUsers = saveUsers;
 saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.12'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.13'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
