@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.22</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.23</span>
   </div>
 </div>
 <div class="tabs">
@@ -2328,6 +2328,9 @@ function renderOfficialList() {
     <span id="batchCount" style="font-weight:600;color:var(--danger);">已选 0 项</span>
     <span style="flex:1"></span>
     <button class="btn btn-outline btn-sm" onclick="toggleSelectAll()" id="selectAllBtn">全选</button>
+    <select id="batchMoveSelect" class="btn btn-outline btn-sm" style="padding:4px 8px;font-size:12px;border-radius:6px;background:var(--card);color:var(--text);cursor:pointer;" onchange="batchMoveToCategory(this.value)">
+      <option value="">📦 批量移动到...</option>
+    </select>
     <button class="btn btn-danger btn-sm" onclick="batchDeleteManuals()">🗑️ 批量删除</button>
     <button class="btn btn-outline btn-sm" onclick="cancelBatchSelect()">取消</button>
   </div>` : '';
@@ -2366,6 +2369,23 @@ function moveManualCategory(key, newCatId) {
   showToast(`✅ 已移动到"${catName}"`);
 }
 
+function batchMoveToCategory(newCatId) {
+  if (!guardAdmin()) return;
+  if (!newCatId) return;
+  const checks = document.querySelectorAll('.manual-checkbox:checked');
+  if (checks.length === 0) { showToast('请先选择要移动的说明书'); return; }
+  const keys = Array.from(checks).map(c => c.dataset.key);
+  const catMap = getFullCategoryMap();
+  keys.forEach(key => { catMap[key] = newCatId; });
+  saveManualCategoryMap(catMap);
+  cancelBatchSelect();
+  const cats = loadCategories();
+  const catName = cats.find(c => c.id === newCatId)?.name || newCatId;
+  currentCategory = newCatId;
+  renderCategoryTabs(); renderOfficialList();
+  showToast(`✅ 已将 ${keys.length} 个说明书移动到"${catName}"`);
+}
+
 // ===== Delete Manual =====
 function loadDeletedManuals() {
   try { const d = localStorage.getItem('nurse_deleted_manuals'); return d ? JSON.parse(d) : []; } catch(e) { return []; }
@@ -2399,6 +2419,13 @@ function updateBatchBar() {
   if (checks.length > 0) {
     bar.style.display = 'flex';
     document.getElementById('batchCount').textContent = '已选 ' + checks.length + ' 项';
+    // Populate batch move dropdown
+    const sel = document.getElementById('batchMoveSelect');
+    if (sel) {
+      const cats = loadCategories();
+      sel.innerHTML = '<option value="">📦 批量移动到...</option>' + cats.map(c => '<option value="' + c.id + '">' + c.name + '</option>').join('');
+      sel.value = '';
+    }
   } else {
     bar.style.display = 'none';
   }
@@ -3270,7 +3297,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.22'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.23'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
