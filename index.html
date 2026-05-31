@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.24</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.25</span>
   </div>
 </div>
 <div class="tabs">
@@ -1708,44 +1708,45 @@ function showManualModal(key, name, spec, isOfficial, medicineId) {
 }
 
 function renderManualView(key, manual, isOfficial) {
-  // Check for user overrides
   const overrides = loadManualOverrides();
   const ov = overrides[key] || {};
-  const getField = (field) => ov[field] || manual[field] || '';
   const category = manual.category || '';
 
-  // Field definitions: [key, icon, label]
-  const fields = [
-    ['composition','🧪','成分'],['character','🔬','性状'],['indications','📋','适应症'],['specification','📏','规格'],
-    ['usage','💉','用法用量'],['adverse','⚠️','不良反应'],['contraindications','🚫','禁忌'],
-    ['precautions','💡','注意事项'],['overdose','💊','药物过量'],['pharmacokinetics','🔄','药代动力学'],
-    ['pharmacology','📚','药理毒理'],['storage','🌡️','贮藏'],['packaging','📦','包装'],
-    ['validity','📅','有效期'],['standard','📜','执行标准'],['approval','🔢','批准文号'],['manufacturer','🏭','生产企业']
-  ];
+  // Collect sections: prefer ov.sections, then manual.sections, then legacy fixed fields
+  const displaySections = {};
+  if (ov.sections) {
+    Object.entries(ov.sections).forEach(([t, c]) => { if (c && c.trim()) displaySections[t] = c.trim(); });
+  } else if (manual.sections) {
+    Object.entries(manual.sections).forEach(([t, c]) => { if (c && c.trim()) displaySections[t] = c.trim(); });
+  } else {
+    // Legacy: map old fixed fields
+    const lm = {composition:'成分',character:'性状',indications:'适应症',specification:'规格',usage:'用法用量',adverse:'不良反应',contraindications:'禁忌',precautions:'注意事项',overdose:'药物过量',pharmacokinetics:'药代动力学',pharmacology:'药理毒理',storage:'贮藏',packaging:'包装',validity:'有效期',standard:'执行标准',approval:'批准文号',manufacturer:'生产企业'};
+    Object.entries(lm).forEach(([f, t]) => { const v = ov[f] || manual[f] || ''; if (v) displaySections[t] = v; });
+  }
+
+  const iconMap = {'药品名称':'💊','成分':'🧪','性状':'🔬','适应症':'📋','规格':'📏','用法用量':'💉','不良反应':'⚠️','禁忌':'🚫','注意事项':'💡','药物过量':'💊','药代动力学':'🔄','药理毒理':'📚','药理作用':'📚','贮藏':'🌡️','包装':'📦','有效期':'📅','执行标准':'📜','批准文号':'🔢','生产企业':'🏭'};
+  const getIcon = (t) => iconMap[t] || '📄';
 
   let catInfo = '';
-  if (category) catInfo = `<div class="info-section"><div class="info-section-title">🏷️ 分类</div><div class="info-section-content">${category}${manual.alias ? '（别名：'+manual.alias+'）' : ''}</div></div>`;
+  if (category) catInfo = `<div class="info-section"><div class="info-section-title">🏷️ 分类</div><div class="info-section-content">${category}</div></div>`;
 
-  const fieldSections = fields.map(([f, icon, label]) => {
-    const val = getField(f);
-    const display = val ? val.replace(/\n/g, '<br>') : '<span style="color:var(--text-secondary);font-style:italic;">无</span>';
-    return `<div class="info-section" id="sec_${f}"><div class="info-section-title">${icon} ${label}</div><div class="info-section-content">${display}</div></div>`;
-  }).join('\n');
+  const fieldHtml = Object.entries(displaySections).map(([title, content]) =>
+    `<div class="info-section"><div class="info-section-title">${getIcon(title)} ${escHtml(title)}</div><div class="info-section-content">${content.replace(/\n/g, '<br>')}</div></div>`
+  ).join('\n');
 
   return `
     ${isOfficial ? '<div style="background:var(--primary-light);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--primary);font-weight:600;">📋 官方药品说明书</div>' : ''}
     ${catInfo}
-    ${fieldSections}
-    <div class="warning-box">⚠️ ${isOfficial ? '以上信息来源于官方药品说明书，仅供临床参考。' : '以上信息仅供参考，具体用药请以药品实际说明书和医嘱为准。'}</div>
+    ${fieldHtml || '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">暂无说明书信息</div></div>'}
+    <div class="warning-box">⚠️ 以上信息仅供参考，具体用药请以药品实际说明书和医嘱为准。</div>
     ${isAdmin() ? `<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn btn-outline btn-sm" onclick="editManual('${key}')">✏️ 编辑</button>
       <button class="btn btn-outline btn-sm" onclick="triggerSingleUpload('${key}')">📋 粘贴说明书</button>
-      <button class="btn btn-danger btn-sm" onclick="deleteManual('${key}','${document.getElementById('modalTitle')?.textContent||''}') ; closeModal();">🗑️ 删除</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteManual('${key}','${document.getElementById('modalTitle')?.textContent||''}');closeModal();">🗑️ 删除</button>
     </div>` : ''}
   `;
 }
 
-// ===== Manual Overrides (user edits) =====
 function loadManualOverrides() {
   try { const d = localStorage.getItem('nurse_manual_overrides'); return d ? JSON.parse(d) : {}; } catch(e) { return {}; }
 }
@@ -1758,24 +1759,29 @@ function editManual(key) {
   if (!manual) return;
   const overrides = loadManualOverrides();
   const ov = overrides[key] || {};
-  const indications = ov.indications ?? manual.indications ?? '';
-  const usage = ov.usage ?? manual.usage ?? '';
-  const adverse = ov.adverse ?? manual.adverse ?? '';
-  const contraindications = ov.contraindications ?? manual.contraindications ?? '';
-  const precautions = ov.precautions ?? manual.precautions ?? '';
 
-  const fieldDefs = [
-    ['composition','🧪','成分'],['character','🔬','性状'],['indications','📋','适应症'],['specification','📏','规格'],
-    ['usage','💉','用法用量'],['adverse','⚠️','不良反应'],['contraindications','🚫','禁忌'],
-    ['precautions','💡','注意事项'],['overdose','💊','药物过量'],['pharmacokinetics','🔄','药代动力学'],
-    ['pharmacology','📚','药理毒理'],['storage','🌡️','贮藏'],['packaging','📦','包装'],
-    ['validity','📅','有效期'],['standard','📜','执行标准'],['approval','🔢','批准文号'],['manufacturer','🏭','生产企业']
-  ];
-  const editHtml = fieldDefs.map(([f,icon,label],i) => {
-    const val = ov[f] ?? manual[f] ?? '';
-    return `${i>0?'<div class="edit-section-title" style="margin-top:12px;">':'<div class="edit-section-title">'}${icon} ${label}</div><textarea class="edit-field" id="edit_${f}">${escHtml(val)}</textarea>`;
-  }).join('\n');
-  document.getElementById('modalBody').innerHTML = editHtml;
+  // Collect sections for editing
+  const editSections = {};
+  if (ov.sections) {
+    Object.entries(ov.sections).forEach(([t, c]) => { editSections[t] = c; });
+  } else if (manual.sections) {
+    Object.entries(manual.sections).forEach(([t, c]) => { editSections[t] = c; });
+  } else {
+    const lm = {composition:'成分',character:'性状',indications:'适应症',specification:'规格',usage:'用法用量',adverse:'不良反应',contraindications:'禁忌',precautions:'注意事项',overdose:'药物过量',pharmacokinetics:'药代动力学',pharmacology:'药理毒理',storage:'贮藏',packaging:'包装',validity:'有效期',standard:'执行标准',approval:'批准文号',manufacturer:'生产企业'};
+    Object.entries(lm).forEach(([f, t]) => { const v = ov[f] || manual[f] || ''; if (v) editSections[t] = v; });
+  }
+
+  const iconMap = {'成分':'🧪','性状':'🔬','适应症':'📋','规格':'📏','用法用量':'💉','不良反应':'⚠️','禁忌':'🚫','注意事项':'💡','药物过量':'💊','药代动力学':'🔄','药理毒理':'📚','贮藏':'🌡️','包装':'📦','有效期':'📅','执行标准':'📜','批准文号':'🔢','生产企业':'🏭'};
+  const getIcon = (t) => iconMap[t] || '📄';
+
+  const entries = Object.entries(editSections);
+  const editHtml = entries.map(([title, content], i) =>
+    `${i > 0 ? '<div class="edit-section-title" style="margin-top:12px;">' : '<div class="edit-section-title">'}${getIcon(title)} ${escHtml(title)}</div><textarea class="edit-field" data-section-title="${escHtml(title)}" id="edit_sec_${i}">${escHtml(content)}</textarea>`
+  ).join('\n');
+
+  const addBtn = '<div style="margin-top:12px;display:flex;gap:8px;"><input id="newSectionTitle" placeholder="新标题" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:13px;"><button class="btn btn-outline btn-sm" onclick="addEditSection()">➕ 添加</button></div>';
+
+  document.getElementById('modalBody').innerHTML = `<div id="editSectionsContainer">${editHtml}</div>${addBtn}`;
   document.getElementById('modalFooter').style.display = 'flex';
   document.getElementById('modalFooter').innerHTML = `
     <button class="btn btn-outline btn-sm" onclick="cancelEdit('${key}')">取消</button>
@@ -1783,6 +1789,14 @@ function editManual(key) {
   `;
 }
 
+function addEditSection() {
+  const title = document.getElementById('newSectionTitle').value.trim();
+  if (!title) return;
+  const container = document.getElementById('editSectionsContainer');
+  const count = container.querySelectorAll('textarea').length;
+  container.innerHTML += `<div class="edit-section-title" style="margin-top:12px;">📄 ${escHtml(title)}</div><textarea class="edit-field" data-section-title="${escHtml(title)}" id="edit_sec_${count}"></textarea>`;
+  document.getElementById('newSectionTitle').value = '';
+}
 function escHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -1797,11 +1811,13 @@ function cancelEdit(key) {
 }
 
 function saveEdit(key) {
+  const sections = {};
+  document.querySelectorAll('#editSectionsContainer textarea').forEach(ta => {
+    const title = ta.getAttribute('data-section-title');
+    if (title && ta.value.trim()) sections[title] = ta.value.trim();
+  });
   const overrides = loadManualOverrides();
-  const allFields = ['composition','character','indications','specification','usage','adverse','contraindications','precautions','overdose','pharmacokinetics','pharmacology','storage','packaging','validity','standard','approval','manufacturer'];
-  const newOv = { editedAt: new Date().toISOString() };
-  allFields.forEach(f => { const el = document.getElementById('edit_'+f); if(el) newOv[f] = el.value; });
-  overrides[key] = newOv;
+  overrides[key] = { sections, editedAt: new Date().toISOString() };
   saveManualOverrides(overrides);
   document.getElementById('modalFooter').style.display = 'none';
   const manual = getManualByKey(key);
@@ -1811,8 +1827,6 @@ function saveEdit(key) {
   showToast('✅ 说明书已更新');
 }
 
-// ===== Single Paste Upload (for a specific drug) =====
-let uploadTargetKey = null;
 function triggerSingleUpload(key) {
   uploadTargetKey = key;
   const manual = getManualByKey(key);
@@ -1838,7 +1852,7 @@ function processSinglePaste() {
   if (parsed) {
     const overrides = loadManualOverrides();
     overrides[uploadTargetKey] = {
-      ...parsed,
+      sections: parsed.sections || {},
       source: '手动粘贴',
       uploadedAt: new Date().toISOString()
     };
@@ -1849,10 +1863,9 @@ function processSinglePaste() {
     renderOfficialList();
     showToast('✅ 说明书已更新');
   } else {
-    showToast('⚠️ 未能识别药品说明书结构，请确保包含"适应症"、"用法用量"等标题');
+    showToast('⚠️ 未能识别说明书结构，请确保包含【】或[]标注的标题');
   }
 }
-
 // ===== Parse manual text from uploaded file =====
 // ===== Read document file (handles .docx, .xlsx, .txt, etc.) =====
 async function readDocumentFile(file) {
@@ -2121,146 +2134,77 @@ function extractReadableText(arrayBuffer) {
 
 function parseManualText(text, filename) {
   if (!text || text.trim().length < 20) return null;
-  
-  const sections = { composition:'', character:'', indications:'', specification:'', usage:'', adverse:'', contraindications:'', precautions:'', overdose:'', pharmacokinetics:'', pharmacology:'', storage:'', packaging:'', validity:'', standard:'', approval:'', manufacturer:'' };
-  
-  const headingMap = {
-    composition: [/成分/i, /主要成分/i, /原料/i],
-    character: [/性状/i],
-    indications: [/适应症/i, /主治/i, /功能主治/i, /作用与用途/i, /用途/i],
-    specification: [/规格/i],
-    usage: [/用法用量/i, /用法与用量/i, /给药途径/i, /用法/i],
-    adverse: [/不良反应/i, /副作用/i, /不良反应\/副作用/i],
-    contraindications: [/禁忌症?/i, /禁用/i],
-    precautions: [/注意事项/i, /警示/i, /重要黑框警告/i],
-    overdose: [/药物过量/i, /过量/i],
-    pharmacokinetics: [/药代动力学/i, /药动学/i],
-    pharmacology: [/药理毒理/i, /药理作用/i, /毒理/i, /药理/i],
-    storage: [/贮藏/i, /储藏/i, /保存/i, /贮存/i],
-    packaging: [/包装/i],
-    validity: [/有效期/i, /使用期限/i],
-    standard: [/执行标准/i, /标准/i],
-    approval: [/批准文号/i, /国药准字/i],
-    manufacturer: [/生产企业/i, /生产厂/i, /厂家/i, /制药/i]
-  };
-  // Ordered list for smart matching (less ambiguous first)
-  const orderedSections = ['manufacturer','approval','standard','validity','packaging','storage','pharmacology','pharmacokinetics','overdose','precautions','contraindications','adverse','usage','specification','indications','character','composition'];
-  
-  // Pre-process: split long lines at section headings
-  const allKeywords = '适应症|主治|功能主治|作用与用途|用途|用法用量|用法与用量|给药途径|用法|不良反应|副作用|禁忌症?|禁用|注意事项|警示|药物过量|过量|药代动力学|药动学|药理毒理|药理作用|毒理|药理|贮藏|储藏|保存|贮存|包装|有效期|使用期限|执行标准|批准文号|国药准字|生产企业|生产厂|厂家|成分|主要成分|原料|性状|规格';
-  const preLines = text.split(/\n/);
-  const splitLines = [];
-  for (const line of preLines) {
-    const parts = line.split(new RegExp('(?=【[^】]*(?:' + allKeywords + ')[^】]*】)|(?=(?:' + allKeywords + ')[：:])'));
-    if (parts.length > 1) {
-      splitLines.push(...parts.filter(p => p.trim()));
-    } else {
-      splitLines.push(line);
+  // Parse by 【】 and [] brackets - each bracketed text is a section title,
+  // everything until next bracket is the content
+  const sections = {};
+  const regex = /[【\[]([^】\]]+)[】\]]/g;
+  const matches = [];
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    matches.push({ title: m[1].trim(), endIndex: m.index + m[0].length });
+  }
+  if (matches.length === 0) return null;
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].endIndex;
+    let nextBracket = text.length;
+    if (i + 1 < matches.length) {
+      const remaining = text.substring(start);
+      const nextMatch = remaining.search(/[【\[]/);
+      if (nextMatch >= 0) nextBracket = start + nextMatch;
+    }
+    const content = text.substring(start, nextBracket).trim();
+    if (content.length > 0) {
+      sections[matches[i].title] = content;
     }
   }
-  
-  let currentSection = null;
-  const sectionTexts = {};
-  
-  for (const line of splitLines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    let matched = false;
-    // Use ordered matching for less ambiguous sections first
-    for (const section of orderedSections) {
-      const patterns = headingMap[section];
-      for (const pattern of patterns) {
-        if (pattern.test(trimmed) && trimmed.length < 80) {
-          currentSection = section;
-          sectionTexts[section] = '';
-          matched = true; break;
-        }
-      }
-      if (matched) break;
-    }
-    if (!matched && currentSection) {
-      sectionTexts[currentSection] = (sectionTexts[currentSection] || '') + trimmed + '\n';
-    }
-  }
-  
-  if (Object.keys(sectionTexts).length === 0) {
-    sectionTexts.indications = text.trim();
-  }
-  
-  for (const [key, val] of Object.entries(sectionTexts)) {
-    if (sections.hasOwnProperty(key)) sections[key] = val.trim();
-  }
-  return sections;
+  if (Object.keys(sections).length === 0) return null;
+  return { sections };
 }
-
 // Parse a text that may contain MULTIPLE drug manuals (split by drug name markers)
 function parseMultipleManuals(text, filename) {
   if (!text || text.trim().length < 20) return [];
   
-  const lines = text.split(/\n/);
-  const drugBlocks = []; // Array of { name, textLines }
-  let currentBlock = null;
+  // Split by "药品名称" markers (【药品名称】 or 药品名称：)
+  const blocks = [];
+  const splitRegex = /(?:^|\n)(?=[【\[]?药品名称[】\]:：])/g;
+  const parts = text.split(splitRegex).filter(p => p.trim());
   
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Detect drug name lines: "药品名称：XXX" or "药品名称】\nXXX" pattern
-    const nameMatch = trimmed.match(/^药品名称[：:】]?(\S.*)?$/);
-    if (nameMatch) {
-      if (currentBlock && currentBlock.lines.length > 0) drugBlocks.push(currentBlock);
-      const nameOnSameLine = nameMatch[1] ? nameMatch[1].trim() : '';
-      currentBlock = { name: nameOnSameLine, lines: [] };
-      if (nameOnSameLine) currentBlock.lines.push(trimmed);
-      continue;
-    }
-    // If currentBlock has no name yet, this line might be the drug name
-    if (currentBlock && !currentBlock.name && trimmed.length > 1 && trimmed.length < 60) {
-      currentBlock.name = trimmed;
-      continue;
-    }
-    if (currentBlock) currentBlock.lines.push(trimmed);
-  }
-  if (currentBlock && currentBlock.lines.length > 0) drugBlocks.push(currentBlock);
-  
-  // If no drug blocks found, treat entire text as single drug
-  if (drugBlocks.length === 0) {
+  if (parts.length === 0) {
+    // No drug name markers - try treating as single drug
     const parsed = parseManualText(text, filename);
     if (parsed) {
+      // Try to find drug name from first 【】 or [] bracket, or from first line
       let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
-      const firstLines = text.split(/\n/);
-      for (const l of firstLines) {
-        const t = l.trim();
-        if (t.length > 2 && t.length < 50 && !/^[\s\d\-–—【]/.test(t)) { drugName = t; break; }
-      }
+      const firstNameMatch = text.match(/^[【\[]([^】\]]+)[】\]]/);
+      if (firstNameMatch) drugName = firstNameMatch[1].replace(/^药品名称[：:】\]]\s*/,'').trim();
       return [{ name: drugName, ...parsed }];
     }
     return [];
   }
-  
-  // Parse each drug block
-  const results = [];
-  for (const block of drugBlocks) {
-    const blockText = block.lines.join('\n');
-    if (blockText.trim().length < 20) continue;
-    const parsed = parseManualText(blockText, filename);
-    if (parsed) {
-      let name = block.name;
-      if (!name) {
-        name = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
-        const firstLines = blockText.split(/\n/);
-        for (const l of firstLines) {
-          const t = l.trim();
-          if (t.length > 2 && t.length < 50 && !/^[\s\d\-–—【]/.test(t)) { name = t; break; }
-        }
-      }
-      // Clean up name - remove "药品名称：" prefix
-      name = name.replace(/^药品名称[：:】]\s*/, '').trim();
-      results.push({ name, ...parsed });
+
+  for (const part of parts) {
+    // Extract drug name
+    let name = '';
+    const nameMatch = part.match(/药品名称[】\]:：]\s*(\S[^\n【\[]*)/);
+    if (nameMatch) name = nameMatch[1].trim();
+    if (!name) {
+      const brMatch = part.match(/^[【\[]([^】\]]+)[】\]]/);
+      if (brMatch) name = brMatch[1].replace(/^药品名称[：:]/,'').trim();
+    }
+    if (!name) {
+      const firstLine = part.split('\n')[0].trim();
+      if (firstLine.length > 1 && firstLine.length < 60) name = firstLine;
+    }
+    name = name.replace(/^药品名称[：:】\]]\s*/, '').trim();
+    
+    const parsed = parseManualText(part, filename);
+    if (parsed && Object.keys(parsed.sections || {}).length > 0) {
+      blocks.push({ name: name || '未知药品', ...parsed });
     }
   }
-  return results;
+  return blocks;
 }
 
-// ===== Category Tabs =====
 function renderCategoryTabs() {
   const cats = loadCategories();
   document.getElementById('categoryTabs').innerHTML = cats.map(c =>
@@ -2636,45 +2580,34 @@ function processManualPaste() {
   if (multiParsed.length > 0) {
     const customs = loadCustomManuals();
     const catMap = getFullCategoryMap();
-    let addedCount = 0, skippedNames = [];
+    let skippedNames = [];
     multiParsed.forEach((parsed, idx) => {
       const manualName = parsed.name || '未知' + (idx+1);
       if (isManualNameExists(manualName)) { skippedNames.push(manualName); return; }
       const key = 'custom_' + Date.now() + '_manual_' + idx;
       customs.push({
-        key, name: parsed.name || '药品' + (idx+1), spec: parsed.specification || '',
-        composition: parsed.composition || '', character: parsed.character || '',
-        indications: parsed.indications || '', specification: parsed.specification || '',
-        usage: parsed.usage || '', adverse: parsed.adverse || '',
-        contraindications: parsed.contraindications || '', precautions: parsed.precautions || '',
-        overdose: parsed.overdose || '', pharmacokinetics: parsed.pharmacokinetics || '',
-        pharmacology: parsed.pharmacology || '', storage: parsed.storage || '',
-        packaging: parsed.packaging || '', validity: parsed.validity || '',
-        standard: parsed.standard || '', approval: parsed.approval || '',
-        manufacturer: parsed.manufacturer || '',
+        key, name: parsed.name || '药品' + (idx+1), spec: '',
+        sections: parsed.sections || {},
         source: '手动粘贴', addedAt: new Date().toISOString()
       });
       catMap[key] = 'unclassified';
     });
-    addedCount = customs.length - (loadCustomManuals().length - multiParsed.length + skippedNames.length);
     saveCustomManuals(customs);
     saveManualCategoryMap(catMap);
     const addedNames = multiParsed.filter(m => !skippedNames.includes(m.name || '未知')).map(m => m.name || '未知');
-    let resultHtml = `<div style="background:var(--success-light);padding:12px;border-radius:8px;font-size:13px;">
+    resultDiv.innerHTML = `<div style="background:var(--success-light);padding:12px;border-radius:8px;font-size:13px;">
       ✅ 成功添加 ${addedNames.length} 个药品说明书${skippedNames.length > 0 ? '，跳过 ' + skippedNames.length + ' 个重复' : ''}：<br>
       ${addedNames.map(n => '• ' + escHtml(n)).join('<br>')}
       ${skippedNames.length > 0 ? '<br><br>⚠️ 以下名称已存在被跳过：<br>' + skippedNames.map(n => '• ' + escHtml(n)).join('<br>') : ''}
     </div>`;
-    resultDiv.innerHTML = resultHtml;
     currentCategory = 'unclassified';
     renderCategoryTabs(); renderOfficialList();
   } else {
     resultDiv.innerHTML = `<div style="background:var(--danger-light);padding:12px;border-radius:8px;font-size:13px;">
-      ⚠️ 未能识别药品说明书结构。请确保文本包含"药品名称"、"适应症"、"用法用量"等标题。
+      ⚠️ 未能识别药品说明书结构。请确保文本包含【】或[]标注的标题。
     </div>`;
   }
 }
-
 // ===== History =====
 function renderHistory() {
   const list = document.getElementById('historyList');
@@ -3293,7 +3226,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.24'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.25'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
