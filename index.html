@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.27</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.28</span>
   </div>
 </div>
 <div class="tabs">
@@ -1714,10 +1714,13 @@ function renderManualView(key, manual, isOfficial) {
 
   // Collect sections: prefer ov.sections, then manual.sections, then legacy fixed fields
   const displaySections = {};
+  // sections can be ordered array [{title,content}] or legacy object {title:content}
   if (ov.sections) {
-    Object.entries(ov.sections).forEach(([t, c]) => { if (c && c.trim()) displaySections[t] = c.trim(); });
+    if (Array.isArray(ov.sections)) ov.sections.forEach(s => { if (s.content && s.content.trim()) displaySections[s.title] = s.content.trim(); });
+    else Object.entries(ov.sections).forEach(([t, c]) => { if (c && c.trim()) displaySections[t] = c.trim(); });
   } else if (manual.sections) {
-    Object.entries(manual.sections).forEach(([t, c]) => { if (c && c.trim()) displaySections[t] = c.trim(); });
+    if (Array.isArray(manual.sections)) manual.sections.forEach(s => { if (s.content && s.content.trim()) displaySections[s.title] = s.content.trim(); });
+    else Object.entries(manual.sections).forEach(([t, c]) => { if (c && c.trim()) displaySections[t] = c.trim(); });
   } else {
     // Legacy: map old fixed fields
     const lm = {composition:'成分',character:'性状',indications:'适应症',specification:'规格',usage:'用法用量',adverse:'不良反应',contraindications:'禁忌',precautions:'注意事项',overdose:'药物过量',pharmacokinetics:'药代动力学',pharmacology:'药理毒理',storage:'贮藏',packaging:'包装',validity:'有效期',standard:'执行标准',approval:'批准文号',manufacturer:'生产企业'};
@@ -1763,9 +1766,11 @@ function editManual(key) {
   // Collect sections for editing
   const editSections = {};
   if (ov.sections) {
-    Object.entries(ov.sections).forEach(([t, c]) => { editSections[t] = c; });
+    if (Array.isArray(ov.sections)) ov.sections.forEach(s => { editSections[s.title] = s.content; });
+    else Object.entries(ov.sections).forEach(([t, c]) => { editSections[t] = c; });
   } else if (manual.sections) {
-    Object.entries(manual.sections).forEach(([t, c]) => { editSections[t] = c; });
+    if (Array.isArray(manual.sections)) manual.sections.forEach(s => { editSections[s.title] = s.content; });
+    else Object.entries(manual.sections).forEach(([t, c]) => { editSections[t] = c; });
   } else {
     const lm = {composition:'成分',character:'性状',indications:'适应症',specification:'规格',usage:'用法用量',adverse:'不良反应',contraindications:'禁忌',precautions:'注意事项',overdose:'药物过量',pharmacokinetics:'药代动力学',pharmacology:'药理毒理',storage:'贮藏',packaging:'包装',validity:'有效期',standard:'执行标准',approval:'批准文号',manufacturer:'生产企业'};
     Object.entries(lm).forEach(([f, t]) => { const v = ov[f] || manual[f] || ''; if (v) editSections[t] = v; });
@@ -1817,7 +1822,13 @@ function saveEdit(key) {
     if (title && ta.value.trim()) sections[title] = ta.value.trim();
   });
   const overrides = loadManualOverrides();
-  overrides[key] = { sections, editedAt: new Date().toISOString() };
+  // Save as ordered array to preserve section order
+  const orderedSections = [];
+  document.querySelectorAll('#editSectionsContainer textarea').forEach(ta => {
+    const title = ta.getAttribute('data-section-title');
+    if (title) orderedSections.push({ title, content: ta.value.trim() });
+  });
+  overrides[key] = { sections: orderedSections, editedAt: new Date().toISOString() };
   saveManualOverrides(overrides);
   document.getElementById('modalFooter').style.display = 'none';
   const manual = getManualByKey(key);
@@ -1852,7 +1863,7 @@ function processSinglePaste() {
   if (parsed) {
     const overrides = loadManualOverrides();
     overrides[uploadTargetKey] = {
-      sections: parsed.sections || {},
+      sections: parsed.sections || [],
       source: '手动粘贴',
       uploadedAt: new Date().toISOString()
     };
@@ -2134,9 +2145,9 @@ function extractReadableText(arrayBuffer) {
 
 function parseManualText(text, filename) {
   if (!text || text.trim().length < 20) return null;
-  // Parse by 【】 and [] brackets - each bracketed text is a section title,
-  // everything until next bracket is the content
-  const sections = {};
+  // Parse by 【】 brackets - each bracketed text is a section title,
+  // everything until next 【】 is the content. Preserve input order.
+  const sections = []; // [{title, content}] ordered array
   const regex = /【([^】]+)】/g;
   const matches = [];
   let m;
@@ -2152,15 +2163,15 @@ function parseManualText(text, filename) {
       const nextMatch = remaining.search(/【/);
       if (nextMatch >= 0) nextBracket = start + nextMatch;
     }
-    const content = text.substring(start, nextBracket).replace(/^[：:]+\s*/, '').trim();
-    if (content.length > 0) {
-      sections[matches[i].title] = content;
-    }
+    // Skip colon after bracket: 【适应症】：xxx → content starts at xxx
+    let content = text.substring(start, nextBracket).trim();
+    content = content.replace(/^[：:\s]+/, '').trim();
+    sections.push({ title: matches[i].title, content });
   }
-  if (Object.keys(sections).length === 0) return null;
+  if (sections.length === 0) return null;
   return { sections };
 }
-// Parse a text that may contain MULTIPLE drug manuals (split by drug name markers)
+
 function parseMultipleManuals(text, filename) {
   if (!text || text.trim().length < 20) return [];
   
@@ -2587,7 +2598,7 @@ function processManualPaste() {
       const key = 'custom_' + Date.now() + '_manual_' + idx;
       customs.push({
         key, name: parsed.name || '药品' + (idx+1), spec: '',
-        sections: parsed.sections || {},
+        sections: parsed.sections || [],
         source: '手动粘贴', addedAt: new Date().toISOString()
       });
       catMap[key] = 'unclassified';
@@ -3226,7 +3237,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.27'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.28'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
