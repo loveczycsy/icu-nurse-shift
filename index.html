@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.10</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.11</span>
   </div>
 </div>
 <div class="tabs">
@@ -1464,7 +1464,27 @@ function loadCurrentShift() {
 // ===== Medicine Table =====
 // ===== Missing Medicine Tracker (cumulative, traceable) =====
 function loadMissingTracker() {
-  try { const d = localStorage.getItem('nurse_missing_tracker'); return d ? JSON.parse(d) : []; } catch(e) { return []; }
+  try {
+    const d = localStorage.getItem('nurse_missing_tracker');
+    if (!d) return [];
+    let tracker = JSON.parse(d);
+    // Deduplicate: same medicineId + sourceDate + sourceShift + sourcePersonnel + reason
+    const seen = new Map();
+    const deduped = [];
+    for (const r of tracker) {
+      const k = `${r.medicineId}|${r.sourceDate}|${r.sourceShift}|${r.sourcePersonnel}|${r.reason}|${r.quantity}`;
+      if (!seen.has(k)) {
+        seen.set(k, true);
+        deduped.push(r);
+      }
+    }
+    if (deduped.length !== tracker.length) {
+      console.log(`🔄 Deduped tracker: ${tracker.length} → ${deduped.length}`);
+      tracker = deduped;
+      localStorage.setItem('nurse_missing_tracker', JSON.stringify(tracker));
+    }
+    return tracker;
+  } catch(e) { return []; }
 }
 function saveMissingTracker(tracker) { localStorage.setItem('nurse_missing_tracker', JSON.stringify(tracker)); }
 
@@ -3116,6 +3136,8 @@ const CloudSync = {
           try { localStorage.setItem(row.key, JSON.stringify(row.value)); } catch(e) {}
         });
         console.log('☁️ Pulled', data.length, 'records from cloud');
+        // Deduplicate missing tracker after pull
+        loadMissingTracker();
       }
     } catch(e) {
       console.error('☁️ Pull failed:', e.message);
@@ -3161,7 +3183,7 @@ const CloudSync = {
             try { localStorage.setItem(row.key, JSON.stringify(row.value)); } catch(e) {}
             // Refresh affected views
             if (row.key === 'nurse_shift_data') { loadShiftData(); renderHistory(); renderMedicineTable(); if (document.getElementById('page-shift').classList.contains('active')) loadCurrentShift(); }
-            else if (row.key === 'nurse_missing_tracker') { renderMedicineTable(); }
+            else if (row.key === 'nurse_missing_tracker') { loadMissingTracker(); renderMedicineTable(); }
             else if (row.key === 'nurse_custom_manuals' || row.key === 'nurse_manual_overrides' || row.key === 'nurse_manual_cat_map' || row.key === 'nurse_manual_categories') { renderCategoryTabs(); renderOfficialList(); }
             else if (row.key === 'nurse_users') { /* no immediate action needed */ }
             console.log('☁️ Real-time update:', row.key);
@@ -3280,7 +3302,7 @@ const _origSaveUsers = saveUsers;
 saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.10'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.11'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
