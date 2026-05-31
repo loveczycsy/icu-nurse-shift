@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.23</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.24</span>
   </div>
 </div>
 <div class="tabs">
@@ -1710,25 +1710,32 @@ function showManualModal(key, name, spec, isOfficial, medicineId) {
 function renderManualView(key, manual, isOfficial) {
   // Check for user overrides
   const overrides = loadManualOverrides();
-  const ov = overrides[key];
-  const indications = ov?.indications || manual.indications || '';
-  const usage = ov?.usage || manual.usage || '';
-  const adverse = ov?.adverse || manual.adverse || '';
-  const contraindications = ov?.contraindications || manual.contraindications || '';
-  const precautions = ov?.precautions || manual.precautions || '';
+  const ov = overrides[key] || {};
+  const getField = (field) => ov[field] || manual[field] || '';
   const category = manual.category || '';
+
+  // Field definitions: [key, icon, label]
+  const fields = [
+    ['composition','🧪','成分'],['character','🔬','性状'],['indications','📋','适应症'],['specification','📏','规格'],
+    ['usage','💉','用法用量'],['adverse','⚠️','不良反应'],['contraindications','🚫','禁忌'],
+    ['precautions','💡','注意事项'],['overdose','💊','药物过量'],['pharmacokinetics','🔄','药代动力学'],
+    ['pharmacology','📚','药理毒理'],['storage','🌡️','贮藏'],['packaging','📦','包装'],
+    ['validity','📅','有效期'],['standard','📜','执行标准'],['approval','🔢','批准文号'],['manufacturer','🏭','生产企业']
+  ];
 
   let catInfo = '';
   if (category) catInfo = `<div class="info-section"><div class="info-section-title">🏷️ 分类</div><div class="info-section-content">${category}${manual.alias ? '（别名：'+manual.alias+'）' : ''}</div></div>`;
 
+  const fieldSections = fields.map(([f, icon, label]) => {
+    const val = getField(f);
+    const display = val ? val.replace(/\n/g, '<br>') : '<span style="color:var(--text-secondary);font-style:italic;">无</span>';
+    return `<div class="info-section" id="sec_${f}"><div class="info-section-title">${icon} ${label}</div><div class="info-section-content">${display}</div></div>`;
+  }).join('\n');
+
   return `
     ${isOfficial ? '<div style="background:var(--primary-light);padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:13px;color:var(--primary);font-weight:600;">📋 官方药品说明书</div>' : ''}
     ${catInfo}
-    <div class="info-section" id="sec_indications"><div class="info-section-title">📋 适应症</div><div class="info-section-content">${indications.replace(/\n/g, '<br>')}</div></div>
-    <div class="info-section" id="sec_usage"><div class="info-section-title">💉 用法用量</div><div class="info-section-content">${usage.replace(/\n/g, '<br>')}</div></div>
-    <div class="info-section" id="sec_contraindications"><div class="info-section-title">🚫 禁忌症</div><div class="info-section-content">${contraindications.replace(/\n/g, '<br>')}</div></div>
-    <div class="info-section" id="sec_adverse"><div class="info-section-title">⚠️ 不良反应</div><div class="info-section-content">${adverse.replace(/\n/g, '<br>')}</div></div>
-    <div class="info-section" id="sec_precautions"><div class="info-section-title">💡 注意事项</div><div class="info-section-content">${precautions.replace(/\n/g, '<br>')}</div></div>
+    ${fieldSections}
     <div class="warning-box">⚠️ ${isOfficial ? '以上信息来源于官方药品说明书，仅供临床参考。' : '以上信息仅供参考，具体用药请以药品实际说明书和医嘱为准。'}</div>
     ${isAdmin() ? `<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn btn-outline btn-sm" onclick="editManual('${key}')">✏️ 编辑</button>
@@ -1757,18 +1764,18 @@ function editManual(key) {
   const contraindications = ov.contraindications ?? manual.contraindications ?? '';
   const precautions = ov.precautions ?? manual.precautions ?? '';
 
-  document.getElementById('modalBody').innerHTML = `
-    <div class="edit-section-title">📋 适应症</div>
-    <textarea class="edit-field" id="edit_indications">${escHtml(indications)}</textarea>
-    <div class="edit-section-title" style="margin-top:12px;">💉 用法用量</div>
-    <textarea class="edit-field" id="edit_usage">${escHtml(usage)}</textarea>
-    <div class="edit-section-title" style="margin-top:12px;">🚫 禁忌症</div>
-    <textarea class="edit-field" id="edit_contraindications">${escHtml(contraindications)}</textarea>
-    <div class="edit-section-title" style="margin-top:12px;">⚠️ 不良反应</div>
-    <textarea class="edit-field" id="edit_adverse">${escHtml(adverse)}</textarea>
-    <div class="edit-section-title" style="margin-top:12px;">💡 注意事项</div>
-    <textarea class="edit-field" id="edit_precautions">${escHtml(precautions)}</textarea>
-  `;
+  const fieldDefs = [
+    ['composition','🧪','成分'],['character','🔬','性状'],['indications','📋','适应症'],['specification','📏','规格'],
+    ['usage','💉','用法用量'],['adverse','⚠️','不良反应'],['contraindications','🚫','禁忌'],
+    ['precautions','💡','注意事项'],['overdose','💊','药物过量'],['pharmacokinetics','🔄','药代动力学'],
+    ['pharmacology','📚','药理毒理'],['storage','🌡️','贮藏'],['packaging','📦','包装'],
+    ['validity','📅','有效期'],['standard','📜','执行标准'],['approval','🔢','批准文号'],['manufacturer','🏭','生产企业']
+  ];
+  const editHtml = fieldDefs.map(([f,icon,label],i) => {
+    const val = ov[f] ?? manual[f] ?? '';
+    return `${i>0?'<div class="edit-section-title" style="margin-top:12px;">':'<div class="edit-section-title">'}${icon} ${label}</div><textarea class="edit-field" id="edit_${f}">${escHtml(val)}</textarea>`;
+  }).join('\n');
+  document.getElementById('modalBody').innerHTML = editHtml;
   document.getElementById('modalFooter').style.display = 'flex';
   document.getElementById('modalFooter').innerHTML = `
     <button class="btn btn-outline btn-sm" onclick="cancelEdit('${key}')">取消</button>
@@ -1791,14 +1798,10 @@ function cancelEdit(key) {
 
 function saveEdit(key) {
   const overrides = loadManualOverrides();
-  overrides[key] = {
-    indications: document.getElementById('edit_indications').value,
-    usage: document.getElementById('edit_usage').value,
-    contraindications: document.getElementById('edit_contraindications').value,
-    adverse: document.getElementById('edit_adverse').value,
-    precautions: document.getElementById('edit_precautions').value,
-    editedAt: new Date().toISOString()
-  };
+  const allFields = ['composition','character','indications','specification','usage','adverse','contraindications','precautions','overdose','pharmacokinetics','pharmacology','storage','packaging','validity','standard','approval','manufacturer'];
+  const newOv = { editedAt: new Date().toISOString() };
+  allFields.forEach(f => { const el = document.getElementById('edit_'+f); if(el) newOv[f] = el.value; });
+  overrides[key] = newOv;
   saveManualOverrides(overrides);
   document.getElementById('modalFooter').style.display = 'none';
   const manual = getManualByKey(key);
@@ -2119,23 +2122,36 @@ function extractReadableText(arrayBuffer) {
 function parseManualText(text, filename) {
   if (!text || text.trim().length < 20) return null;
   
-  const sections = { indications: '', usage: '', adverse: '', contraindications: '', precautions: '' };
+  const sections = { composition:'', character:'', indications:'', specification:'', usage:'', adverse:'', contraindications:'', precautions:'', overdose:'', pharmacokinetics:'', pharmacology:'', storage:'', packaging:'', validity:'', standard:'', approval:'', manufacturer:'' };
   
   const headingMap = {
-    indications: [/适应症/i, /主治/i, /功能主治/i],
-    usage: [/用法用量/i, /用法与用量/i, /给药途径/i],
-    adverse: [/不良反应/i, /副作用/i],
-    contraindications: [/禁忌症?/i],
-    precautions: [/注意事项/i, /警示/i]
+    composition: [/成分/i, /主要成分/i, /原料/i],
+    character: [/性状/i],
+    indications: [/适应症/i, /主治/i, /功能主治/i, /作用与用途/i, /用途/i],
+    specification: [/规格/i],
+    usage: [/用法用量/i, /用法与用量/i, /给药途径/i, /用法/i],
+    adverse: [/不良反应/i, /副作用/i, /不良反应\/副作用/i],
+    contraindications: [/禁忌症?/i, /禁用/i],
+    precautions: [/注意事项/i, /警示/i, /重要黑框警告/i],
+    overdose: [/药物过量/i, /过量/i],
+    pharmacokinetics: [/药代动力学/i, /药动学/i],
+    pharmacology: [/药理毒理/i, /药理作用/i, /毒理/i, /药理/i],
+    storage: [/贮藏/i, /储藏/i, /保存/i, /贮存/i],
+    packaging: [/包装/i],
+    validity: [/有效期/i, /使用期限/i],
+    standard: [/执行标准/i, /标准/i],
+    approval: [/批准文号/i, /国药准字/i],
+    manufacturer: [/生产企业/i, /生产厂/i, /厂家/i, /制药/i]
   };
+  // Ordered list for smart matching (less ambiguous first)
+  const orderedSections = ['manufacturer','approval','standard','validity','packaging','storage','pharmacology','pharmacokinetics','overdose','precautions','contraindications','adverse','usage','specification','indications','character','composition'];
   
-  // Pre-process: split long lines at section headings (e.g., "【适应症】" or "适应症：")
-  // This handles cases where docx extraction puts multiple sections on one line
+  // Pre-process: split long lines at section headings
+  const allKeywords = '适应症|主治|功能主治|作用与用途|用途|用法用量|用法与用量|给药途径|用法|不良反应|副作用|禁忌症?|禁用|注意事项|警示|药物过量|过量|药代动力学|药动学|药理毒理|药理作用|毒理|药理|贮藏|储藏|保存|贮存|包装|有效期|使用期限|执行标准|批准文号|国药准字|生产企业|生产厂|厂家|成分|主要成分|原料|性状|规格';
   const preLines = text.split(/\n/);
   const splitLines = [];
   for (const line of preLines) {
-    // Split on 【XXX】 patterns or section heading keywords followed by colon
-    const parts = line.split(/(?=【[^\】]*(?:适应症|主治|功能主治|用法用量|用法与用量|给药途径|不良反应|副作用|禁忌症?|注意事项|警示)[^\】]*】)|(?=(?:适应症|主治|功能主治|用法用量|用法与用量|给药途径|不良反应|副作用|禁忌症?|注意事项|警示)[：:])/);
+    const parts = line.split(new RegExp('(?=【[^】]*(?:' + allKeywords + ')[^】]*】)|(?=(?:' + allKeywords + ')[：:])'));
     if (parts.length > 1) {
       splitLines.push(...parts.filter(p => p.trim()));
     } else {
@@ -2150,9 +2166,11 @@ function parseManualText(text, filename) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     let matched = false;
-    for (const [section, patterns] of Object.entries(headingMap)) {
+    // Use ordered matching for less ambiguous sections first
+    for (const section of orderedSections) {
+      const patterns = headingMap[section];
       for (const pattern of patterns) {
-        if (pattern.test(trimmed) && trimmed.length < 60) {
+        if (pattern.test(trimmed) && trimmed.length < 80) {
           currentSection = section;
           sectionTexts[section] = '';
           matched = true; break;
@@ -2624,10 +2642,17 @@ function processManualPaste() {
       if (isManualNameExists(manualName)) { skippedNames.push(manualName); return; }
       const key = 'custom_' + Date.now() + '_manual_' + idx;
       customs.push({
-        key, name: parsed.name || '药品' + (idx+1), spec: '',
-        indications: parsed.indications || '', usage: parsed.usage || '',
-        adverse: parsed.adverse || '', contraindications: parsed.contraindications || '',
-        precautions: parsed.precautions || '', source: '手动粘贴', addedAt: new Date().toISOString()
+        key, name: parsed.name || '药品' + (idx+1), spec: parsed.specification || '',
+        composition: parsed.composition || '', character: parsed.character || '',
+        indications: parsed.indications || '', specification: parsed.specification || '',
+        usage: parsed.usage || '', adverse: parsed.adverse || '',
+        contraindications: parsed.contraindications || '', precautions: parsed.precautions || '',
+        overdose: parsed.overdose || '', pharmacokinetics: parsed.pharmacokinetics || '',
+        pharmacology: parsed.pharmacology || '', storage: parsed.storage || '',
+        packaging: parsed.packaging || '', validity: parsed.validity || '',
+        standard: parsed.standard || '', approval: parsed.approval || '',
+        manufacturer: parsed.manufacturer || '',
+        source: '手动粘贴', addedAt: new Date().toISOString()
       });
       catMap[key] = 'unclassified';
     });
@@ -3268,7 +3293,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.23'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.24'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
