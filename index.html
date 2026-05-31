@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.20</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.21</span>
   </div>
 </div>
 <div class="tabs">
@@ -2599,13 +2599,11 @@ function showManualPaste() {
 function isManualNameExists(name, excludeKey) {
   const deletedKeys = loadDeletedManuals();
   const allNames = [];
-  // Check custom manuals
+  // Only check within custom manuals (药品说明书 and 药品基数 are independent)
   const customs = loadCustomManuals();
   customs.forEach(c => {
     if (!deletedKeys.includes(c.key) && c.key !== excludeKey) allNames.push(c.name.trim());
   });
-  // Check base medicine names too
-  MEDICINES.forEach(m => allNames.push(m.name.trim()));
   return allNames.includes(name.trim());
 }
 
@@ -3265,7 +3263,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.20'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.21'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
