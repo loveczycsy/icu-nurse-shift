@@ -491,7 +491,7 @@ body {
   </div>
   <!-- Medicine Base -->
   <div class="page" id="page-medicine">
-    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表</div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表<span style="flex:1"></span><button id="medManageBtn" class="btn btn-outline btn-sm" onclick="showMedicineManager()" style="display:none;">⚙️ 管理药品</button></div>
       <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="medSearch" placeholder="搜索药品名称..." oninput="filterMedicines()"></div>
       <div style="overflow-x:auto;"><table class="medicine-table" id="medicineTable"><thead><tr>
         <th>序号</th><th>药品名称</th><th>规格</th><th>包装</th><th>单位</th><th>基数</th><th>状态</th><th>说明书</th>
@@ -564,6 +564,18 @@ body {
   <div class="modal" style="max-width:520px;">
     <div class="modal-header"><div><div class="modal-title">🌐 在线部署配置</div><div class="modal-subtitle">配置Supabase云数据库，实现多人实时在线</div></div><button class="modal-close" onclick="closeSupabaseModal()">✕</button></div>
     <div class="modal-body" id="supabaseModalBody"></div>
+  </div>
+</div>
+<!-- Modal: Medicine Manager (Admin Only) -->
+<div class="modal-overlay" id="medManageModal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header"><div><div class="modal-title">⚙️ 药品基数管理</div><div class="modal-subtitle">添加、编辑或删除药品品种与基数（仅管理员可操作）</div></div><button class="modal-close" onclick="closeMedManager()">✕</button></div>
+    <div class="modal-body" id="medManageBody"></div>
+    <div class="modal-footer" id="medManageFooter" style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-outline btn-sm" onclick="closeMedManager()">取消</button>
+      <button class="btn btn-primary btn-sm" onclick="addMedicineRow()">➕ 添加药品</button>
+      <button class="btn btn-primary btn-sm" onclick="saveMedicineChanges()">💾 保存更改</button>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -673,7 +685,7 @@ document.addEventListener('click', function(e) {
 
 function applyPermissions() {
   // Admin-only elements: hide for normal users
-  const adminIds = ['bulkAddBtn', 'catManageBtn'];
+  const adminIds = ['bulkAddBtn', 'catManageBtn', 'medManageBtn'];
   adminIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = isAdmin() ? '' : 'none';
@@ -784,7 +796,7 @@ function guardAdmin(action) {
   return true;
 }
 
-const MEDICINES = [
+const DEFAULT_MEDICINES = [
 { id:1, name:"10%氯化钾注射液", spec:"10ml:1g", pkg:"60支/盒", unit:"支", base:20 },
   { id:2, name:"50%葡萄糖注射液", spec:"20ml:10g", pkg:"5支/盒", unit:"支", base:5 },
   { id:3, name:"盐酸利多卡因胶浆", spec:"20g:0.4g/支", pkg:"1支/盒", unit:"支", base:5 },
@@ -828,6 +840,24 @@ const MEDICINES = [
   { id:41, name:"喷他佐辛注射液", spec:"1ml:30mg", pkg:"5支/盒", unit:"支", base:5 },
   { id:42, name:"胰岛素注射液", spec:"10ml:400IU", pkg:"2支/盒", unit:"瓶", base:5 },
 ];
+
+// Load medicines: custom from localStorage, or fallback to defaults
+function loadMedicines() {
+  try {
+    const d = localStorage.getItem('nurse_medicines');
+    if (d) {
+      const custom = JSON.parse(d);
+      if (Array.isArray(custom) && custom.length > 0) return custom;
+    }
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_MEDICINES));
+}
+function saveMedicines(meds) {
+  localStorage.setItem('nurse_medicines', JSON.stringify(meds));
+  if (typeof CloudSync !== 'undefined' && CloudSync.enabled) CloudSync.push('nurse_medicines');
+}
+let MEDICINES = loadMedicines();
+
 const PERSONNEL = [
 "杨浩","王邦涛","杨蜜","胡威","戴永恩","李东林","谢小燕","陈思雨",
   "张露","卢苗","周一平","陈炜华","陈世龙","李茜","周欢","许佳斗",
@@ -1660,6 +1690,83 @@ function filterMedicines() {
   const q = document.getElementById('medSearch').value.toLowerCase();
   document.querySelectorAll('#medicineBody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
 }
+
+// ===== Medicine Manager (Admin Only) =====
+let _medManageList = [];
+
+function showMedicineManager() {
+  if (!guardAdmin()) return;
+  _medManageList = JSON.parse(JSON.stringify(MEDICINES));
+  renderMedManageList();
+  document.getElementById('medManageModal').classList.add('show');
+}
+
+function closeMedManager() {
+  document.getElementById('medManageModal').classList.remove('show');
+}
+
+function renderMedManageList() {
+  let html = '<div style="margin-bottom:8px;color:var(--text-secondary);font-size:13px;">💡 双击单元格可直接编辑，删除药品后点"保存更改"生效</div>';
+  html += '<table class="medicine-table" style="font-size:13px;"><thead><tr>'
+    + '<th style="width:40px;">序号</th><th>药品名称</th><th>规格</th><th>包装</th><th style="width:50px;">单位</th><th style="width:60px;">基数</th><th style="width:50px;">操作</th>'
+    + '</tr></thead><tbody>';
+  _medManageList.forEach((m, idx) => {
+    html += '<tr data-idx="' + idx + '">'
+      + '<td>' + (idx + 1) + '</td>'
+      + '<td><input type="text" value="' + escHtml(m.name) + '" data-field="name" style="width:100%;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'name\',this.value)"></td>'
+      + '<td><input type="text" value="' + escHtml(m.spec) + '" data-field="spec" style="width:100%;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'spec\',this.value)"></td>'
+      + '<td><input type="text" value="' + escHtml(m.pkg) + '" data-field="pkg" style="width:100%;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'pkg\',this.value)"></td>'
+      + '<td><input type="text" value="' + escHtml(m.unit) + '" data-field="unit" style="width:50px;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;text-align:center;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'unit\',this.value)"></td>'
+      + '<td><input type="number" value="' + m.base + '" data-field="base" min="0" style="width:60px;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;text-align:center;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'base\',parseInt(this.value)||0)"></td>'
+      + '<td><button class="detail-btn delete-detail-btn" onclick="_removeMedRow(' + idx + ')" style="padding:2px 8px;">🗑️</button></td>'
+      + '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('medManageBody').innerHTML = html;
+}
+
+function _updateMedField(idx, field, value) {
+  if (_medManageList[idx]) _medManageList[idx][field] = value;
+}
+
+function _removeMedRow(idx) {
+  const m = _medManageList[idx];
+  if (!m) return;
+  if (confirm('确定删除药品"' + m.name + '"？\n删除后相关缺药溯源记录仍会保留，但药品将不再显示在基数表中。')) {
+    _medManageList.splice(idx, 1);
+    renderMedManageList();
+  }
+}
+
+function addMedicineRow() {
+  const newId = _medManageList.length > 0 ? Math.max(..._medManageList.map(m => m.id)) + 1 : 1;
+  _medManageList.push({ id: newId, name: '', spec: '', pkg: '', unit: '支', base: 5 });
+  renderMedManageList();
+  // Focus the name input of the last row
+  const tbody = document.querySelector('#medManageBody tbody');
+  if (tbody) {
+    const lastRow = tbody.lastElementChild;
+    if (lastRow) { const nameInput = lastRow.querySelector('input[data-field="name"]'); if (nameInput) nameInput.focus(); }
+  }
+}
+
+function saveMedicineChanges() {
+  // Validate: no empty names
+  const emptyNames = _medManageList.filter(m => !m.name.trim());
+  if (emptyNames.length > 0) {
+    showToast('⚠️ 药品名称不能为空，请检查后重试');
+    return;
+  }
+  // Re-assign sequential IDs
+  _medManageList.forEach((m, idx) => { m.id = idx + 1; });
+  MEDICINES = JSON.parse(JSON.stringify(_medManageList));
+  saveMedicines(MEDICINES);
+  renderMedicineTable();
+  closeMedManager();
+  showToast('✅ 药品基数已更新，共' + MEDICINES.length + '种药品');
+}
+
+document.getElementById('medManageModal').addEventListener('click', function(e) { if (e.target === this) closeMedManager(); });
 
 // ===== Get Manual Data by Key =====
 function getManualByKey(key) {
@@ -2734,7 +2841,8 @@ const SYNC_STORAGE_KEYS = [
   'nurse_missing_tracker',
   'nurse_users',
   'nurse_missing_tracker_migrated',
-  'nurse_deleted_manuals'
+  'nurse_deleted_manuals',
+  'nurse_medicines'
 ];
 const WEBDAV_BASE = 'https://dav.jianguoyun.com/dav/';
 const SYNC_FILE_NAME = 'icu-nurse-shift-data.json';
@@ -3085,6 +3193,8 @@ const CloudSync = {
         console.log('☁️ Pulled', data.length, 'records from cloud');
         // Deduplicate missing tracker after pull
         loadMissingTracker();
+        // Reload medicines from cloud data
+        MEDICINES = loadMedicines();
       }
     } catch(e) {
       console.error('☁️ Pull failed:', e.message);
@@ -3131,6 +3241,7 @@ const CloudSync = {
             // Refresh affected views
             if (row.key === 'nurse_shift_data') { loadShiftData(); renderHistory(); renderMedicineTable(); if (document.getElementById('page-shift').classList.contains('active')) loadCurrentShift(); }
             else if (row.key === 'nurse_missing_tracker') { loadMissingTracker(); renderMedicineTable(); }
+            else if (row.key === 'nurse_medicines') { MEDICINES = loadMedicines(); renderMedicineTable(); }
             else if (row.key === 'nurse_custom_manuals' || row.key === 'nurse_manual_overrides' || row.key === 'nurse_manual_cat_map' || row.key === 'nurse_manual_categories') { renderCategoryTabs(); renderOfficialList(); }
             else if (row.key === 'nurse_users') { /* no immediate action needed */ }
             console.log('☁️ Real-time update:', row.key);
@@ -3251,8 +3362,11 @@ saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users
 const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
+const _origSaveMedicines = saveMedicines;
+saveMedicines = function(meds) { _origSaveMedicines(meds); CloudSync.push('nurse_medicines'); };
+
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.32'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.33'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
