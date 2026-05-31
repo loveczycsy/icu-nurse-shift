@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.17</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.18</span>
   </div>
 </div>
 <div class="tabs">
@@ -2364,35 +2364,29 @@ function moveManualCategory(key, newCatId) {
 }
 
 // ===== Delete Manual =====
+function loadDeletedManuals() {
+  try { const d = localStorage.getItem('nurse_deleted_manuals'); return d ? JSON.parse(d) : []; } catch(e) { return []; }
+}
+function saveDeletedManuals(list) { localStorage.setItem('nurse_deleted_manuals', JSON.stringify(list)); CloudSync.push('nurse_deleted_manuals'); }
+
 function deleteManual(key, name) {
   if (!guardAdmin()) return;
-  const isCustom = key.startsWith('custom_');
-  if (isCustom) {
-    if (!confirm(`确定删除"${name}"的说明书吗？此操作不可恢复。`)) return;
+  if (!confirm('确定要删除"' + name + '"说明书吗？此操作不可恢复')) return;
+  if (key.startsWith('custom_')) {
     let customs = loadCustomManuals();
     customs = customs.filter(c => c.key !== key);
     saveCustomManuals(customs);
-    const catMap = getFullCategoryMap();
-    delete catMap[key];
-    saveManualCategoryMap(catMap);
-    // Also delete override if exists
-    const overrides = loadManualOverrides();
-    delete overrides[key];
-    saveManualOverrides(overrides);
-    renderOfficialList();
-    showToast('✅ 已删除');
-  } else {
-    const overrides = loadManualOverrides();
-    if (overrides[key]) {
-      if (!confirm(`确定清除"${name}"的用户修改吗？将恢复为原始说明书。`)) return;
-      delete overrides[key];
-      saveManualOverrides(overrides);
-      renderOfficialList();
-      showToast('✅ 已恢复原始说明书');
-    } else {
-      showToast('⚠️ 系统内置说明书不可删除');
-    }
   }
+  const catMap = getFullCategoryMap();
+  delete catMap[key];
+  saveManualCategoryMap(catMap);
+  const overrides = loadManualOverrides();
+  delete overrides[key];
+  saveManualOverrides(overrides);
+  const deleted = loadDeletedManuals();
+  if (!deleted.includes(key)) { deleted.push(key); saveDeletedManuals(deleted); }
+  renderOfficialList();
+  showToast('✅ 已删除');
 }
 
 // ===== Batch Select & Delete =====
@@ -2401,7 +2395,7 @@ function updateBatchBar() {
   const bar = document.getElementById('batchBar');
   if (checks.length > 0) {
     bar.style.display = 'flex';
-    document.getElementById('batchCount').textContent = `已选 ${checks.length} 项`;
+    document.getElementById('batchCount').textContent = '已选 ' + checks.length + ' 项';
   } else {
     bar.style.display = 'none';
   }
@@ -2427,23 +2421,24 @@ function batchDeleteManuals() {
   const checks = document.querySelectorAll('.manual-checkbox:checked');
   if (checks.length === 0) return;
   const keys = Array.from(checks).map(c => c.dataset.key);
-  const names = keys.map(k => { const m = getManualByKey(k); return m?.name || k; });
-  if (!confirm(`确定删除以下 ${keys.length} 个说明书吗？\n\n${names.join('、')}\n\n（内置说明书仅清除修改）`)) return;
+  const names = keys.map(k => { const m = getManualByKey(k); return m ? m.name : k; });
+  if (!confirm('确定删除 ' + keys.length + ' 个说明书吗？\n\n' + names.join('、') + '\n\n此操作不可恢复')) return;
   let customs = loadCustomManuals();
   const overrides = loadManualOverrides();
   const catMap = getFullCategoryMap();
+  const deleted = loadDeletedManuals();
   keys.forEach(key => {
-    if (key.startsWith('custom_')) {
-      customs = customs.filter(c => c.key !== key);
-      delete catMap[key];
-    }
+    if (key.startsWith('custom_')) { customs = customs.filter(c => c.key !== key); }
     delete overrides[key];
+    delete catMap[key];
+    if (!deleted.includes(key)) deleted.push(key);
   });
   saveCustomManuals(customs);
   saveManualOverrides(overrides);
   saveManualCategoryMap(catMap);
+  saveDeletedManuals(deleted);
   renderOfficialList();
-  showToast(`✅ 已处理 ${keys.length} 项`);
+  showToast('✅ 已删除 ' + keys.length + ' 项');
 }
 
 // ===== Delete Manual =====
@@ -2751,7 +2746,9 @@ const SYNC_STORAGE_KEYS = [
   'nurse_custom_manuals',
   'nurse_manual_overrides',
   'nurse_missing_tracker',
-  'nurse_users'
+  'nurse_users',
+  'nurse_missing_tracker_migrated',
+  'nurse_deleted_manuals'
 ];
 const WEBDAV_BASE = 'https://dav.jianguoyun.com/dav/';
 const SYNC_FILE_NAME = 'icu-nurse-shift-data.json';
@@ -3266,7 +3263,7 @@ const _origSaveUsers = saveUsers;
 saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.17'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.18'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
