@@ -2471,35 +2471,6 @@ function batchDeleteManuals() {
   showToast('✅ 已删除 ' + keys.length + ' 项');
 }
 
-// ===== Delete Manual =====
-
-function updateBatchBar() {
-  const checks = document.querySelectorAll('.manual-checkbox:checked');
-  const bar = document.getElementById('batchBar');
-  if (checks.length > 0) {
-    bar.style.display = 'flex';
-    document.getElementById('batchCount').textContent = `已选 ${checks.length} 项`;
-  } else {
-    bar.style.display = 'none';
-  }
-}
-
-function toggleSelectAll() {
-  const checks = document.querySelectorAll('.manual-checkbox');
-  const allChecked = Array.from(checks).every(c => c.checked);
-  checks.forEach(c => c.checked = !allChecked);
-  updateBatchBar();
-  const btn = document.getElementById('selectAllBtn');
-  if (btn) btn.textContent = allChecked ? '全选' : '取消全选';
-}
-
-function cancelBatchSelect() {
-  document.querySelectorAll('.manual-checkbox').forEach(c => c.checked = false);
-  const bar = document.getElementById('batchBar');
-  if (bar) bar.style.display = 'none';
-}
-
-
 function filterOfficialList() {
   const q = document.getElementById('officialSearch').value.toLowerCase();
   document.querySelectorAll('#officialList .manual-item').forEach(item => {
