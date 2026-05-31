@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.29</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.30</span>
   </div>
 </div>
 <div class="tabs">
@@ -2182,10 +2182,12 @@ function parseMultipleManuals(text, filename) {
   
   // Split by "药品名称" markers
   const blocks = [];
-  const splitRegex = /(?:^|\n)(?=【?药品名称[】:：]])/g;
+  // Split by 【药品名称】 markers (supports 【药品名称】 or 药品名称 patterns)
+  const splitRegex = /(?:^|\n)(?=【药品名称】|药品名称[\s:：])/g;
   const parts = text.split(splitRegex).filter(p => p.trim());
   
-  if (parts.length === 0) {
+  if (parts.length <= 1) {
+    // Try parsing entire text as single manual
     const parsed = parseManualText(text, filename);
     if (parsed && parsed.sections && parsed.sections.length > 0) {
       let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
@@ -3244,7 +3246,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.29'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.30'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
