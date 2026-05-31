@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.28</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.29</span>
   </div>
 </div>
 <div class="tabs">
@@ -470,7 +470,9 @@ body {
   <div class="page active" id="page-shift">
     <div class="card"><div class="date-nav">
       <button class="date-btn" onclick="changeDate(-1)">◀</button>
-      <div class="date-display" id="shiftDate"></div>
+      <div class="date-display" id="shiftDate" style="cursor:pointer;" onclick="document.getElementById('datePicker').showPicker()"></div>
+      <input type="date" id="datePicker" style="position:absolute;opacity:0;width:0;height:0;" onchange="jumpToDate(this.value)">
+      <button class="date-btn" onclick="goToday()" title="回到今天" style="font-size:13px;width:auto;padding:0 10px;border-radius:18px;background:var(--primary);color:white;border:none;">今天</button>
       <button class="date-btn" onclick="changeDate(1)">▶</button>
     </div></div>
     <div class="card" style="padding:12px 16px;"><div class="shift-tabs">
@@ -1389,7 +1391,10 @@ function formatDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).
 function getShiftKey() { return formatDateKey(currentDate) + '_' + currentShift; }
 function updateHeaderDate() { document.getElementById('headerDate').textContent = `${currentDate.getFullYear()}-${String(currentDate.getMonth()+1).padStart(2,'0')}-${String(currentDate.getDate()).padStart(2,'0')}`; }
 function renderShiftDate() { document.getElementById('shiftDate').innerHTML = formatDate(currentDate); }
-function changeDate(delta) { autoSaveCurrentShift(); currentDate.setDate(currentDate.getDate() + delta); updateHeaderDate(); renderShiftDate(); loadCurrentShift(); }
+function changeDate(delta) { autoSaveCurrentShift(); currentDate.setDate(currentDate.getDate() + delta); updateHeaderDate(); renderShiftDate(); loadCurrentShift(); updateDatePicker(); }
+function goToday() { autoSaveCurrentShift(); currentDate = new Date(); updateHeaderDate(); renderShiftDate(); loadCurrentShift(); updateDatePicker(); }
+function jumpToDate(val) { if (!val) return; autoSaveCurrentShift(); const [y,m,d] = val.split('-').map(Number); currentDate = new Date(y, m-1, d); updateHeaderDate(); renderShiftDate(); loadCurrentShift(); updateDatePicker(); }
+function updateDatePicker() { document.getElementById('datePicker').value = formatDateKey(currentDate); }
 
 // ===== Shift Type =====
 function switchShift(shiftType) { autoSaveCurrentShift(); currentShift = shiftType; renderShiftTabs(); loadCurrentShift(); }
@@ -3239,7 +3244,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.28'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.29'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
