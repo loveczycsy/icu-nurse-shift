@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.31</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.32</span>
   </div>
 </div>
 <div class="tabs">
@@ -2180,53 +2180,54 @@ function parseManualText(text, filename) {
 function parseMultipleManuals(text, filename) {
   if (!text || text.trim().length < 20) return [];
   
-  const blocks = [];
-  // Split by drug name markers: 【药品名称】, 【通用名称】, or bare text versions
-  // Also supports colons inside brackets like 【药品名称：xxx】
-  const splitRegex = /(?:^|\n)(?=【?(?:药品名称|通用名称)[】\s:：])/g;
-  const parts = text.split(splitRegex).filter(p => p.trim());
+  // Strategy: parse ALL sections from entire text first, then group by drug name markers.
+  // This avoids fragile text-splitting regex issues.
+  const allParsed = parseManualText(text, filename);
+  if (!allParsed || !allParsed.sections || allParsed.sections.length === 0) return [];
   
-  if (parts.length <= 1) {
-    // Try parsing entire text as single manual
-    const parsed = parseManualText(text, filename);
-    if (parsed && parsed.sections && parsed.sections.length > 0) {
-      let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
-      for (const s of parsed.sections) {
-        if (s.title === '药品名称' || s.title === '通用名称') { drugName = s.content.split(/[\n，,]/)[0].trim(); break; }
-      }
-      return [{ name: drugName, ...parsed }];
+  // Find indices where "药品名称" or "通用名称" sections appear
+  const nameIndices = [];
+  allParsed.sections.forEach((s, i) => {
+    if (s.title === '药品名称' || s.title === '通用名称') nameIndices.push(i);
+  });
+  
+  // If no drug name markers found, treat entire text as single manual
+  if (nameIndices.length === 0) {
+    let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
+    // Try to extract name from first section content
+    if (allParsed.sections.length > 0) {
+      drugName = allParsed.sections[0].content.split(/[\n，,]/)[0].trim();
     }
-    return [];
+    return [{ name: drugName, ...allParsed }];
   }
-
-  for (const part of parts) {
+  
+  // Group sections: each drug starts at a "药品名称"/"通用名称" section
+  // Sections BEFORE the first name marker belong to the first drug (preamble)
+  const blocks = [];
+  for (let n = 0; n < nameIndices.length; n++) {
+    const startIdx = nameIndices[n];
+    const endIdx = (n + 1 < nameIndices.length) ? nameIndices[n + 1] : allParsed.sections.length;
+    const drugSections = allParsed.sections.slice(startIdx, endIdx);
+    
+    // Extract drug name from the "药品名称"/"通用名称" section
     let name = '';
-    // Extract name from 【药品名称】xxx or 【药品名称：xxx】 or 【通用名称】xxx patterns
-    const nameBrMatch = part.match(/【(?:药品名称|通用名称)】[：:]*\s*(\S[^\n【]*)/);
-    if (nameBrMatch) name = nameBrMatch[1].trim();
-    // Also try 【药品名称：xxx】 (colon inside brackets, name as part of title)
-    if (!name) {
-      const nameColonMatch = part.match(/【(?:药品名称|通用名称)[：:]+([^】]+)/);
-      if (nameColonMatch) name = nameColonMatch[1].trim();
+    const nameSection = drugSections[0]; // First section is the name marker
+    if (nameSection && nameSection.content) {
+      name = nameSection.content.split(/[\n，,]/)[0].trim();
     }
-    if (!name) {
-      const brMatch = part.match(/^【([^】]+)】/);
-      if (brMatch) name = brMatch[1].replace(/^(药品名称|通用名称)[：:]+/, '').trim();
-    }
-    // Strip any leading colons/冒号 as safety net
     name = name.replace(/^[：:]+/, '').trim();
     
-    const parsed = parseManualText(part, filename);
-    if (parsed && parsed.sections && parsed.sections.length > 0) {
-      // If still no name, try getting it from 药品名称/通用名称 section content
-      if (!name) {
-        for (const s of parsed.sections) {
-          if (s.title === '药品名称' || s.title === '通用名称') { name = s.content.split(/[\n，,]/)[0].trim(); break; }
-        }
-      }
-      blocks.push({ name: name || '未知药品', ...parsed });
+    blocks.push({ name: name || '未知药品', sections: drugSections });
+  }
+  
+  // Handle preamble sections (before first name marker) - prepend to first drug
+  if (nameIndices[0] > 0) {
+    const preamble = allParsed.sections.slice(0, nameIndices[0]);
+    if (blocks.length > 0) {
+      blocks[0].sections = [...preamble, ...blocks[0].sections];
     }
   }
+  
   return blocks;
 }
 
@@ -3251,7 +3252,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.31'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.32'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
