@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.15</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.16</span>
   </div>
 </div>
 <div class="tabs">
@@ -2443,39 +2443,7 @@ function batchDeleteManuals() {
 }
 
 // ===== Delete Manual =====
-function deleteManual(key, name) {
-  // Only allow deleting custom manuals and overrides
-  const isCustom = key.startsWith('custom_');
-  const isOverride = key.startsWith('med_') || key.startsWith('official_');
-  
-  if (isCustom) {
-    if (!confirm(`确定删除"${name}"的说明书吗？此操作不可恢复。`)) return;
-    let customs = loadCustomManuals();
-    customs = customs.filter(c => c.key !== key);
-    saveCustomManuals(customs);
-    // Remove from category map
-    const catMap = getFullCategoryMap();
-    delete catMap[key];
-    saveManualCategoryMap(catMap);
-    renderOfficialList();
-    showToast('✅ 已删除');
-  } else if (isOverride) {
-    // For built-in manuals, we can only delete user overrides
-    const overrides = loadManualOverrides();
-    if (overrides[key]) {
-      if (!confirm(`确定删除"${name}"的用户修改内容吗？将恢复为原始说明书。`)) return;
-      delete overrides[key];
-      saveManualOverrides(overrides);
-      showToast('✅ 已恢复为原始说明书');
-    } else {
-      showToast('⚠️ 系统内置说明书不可删除，仅可清除用户修改');
-      return;
-    }
-    renderOfficialList();
-  }
-}
 
-// ===== Batch Select & Delete =====
 function updateBatchBar() {
   const checks = document.querySelectorAll('.manual-checkbox:checked');
   const bar = document.getElementById('batchBar');
@@ -2502,35 +2470,6 @@ function cancelBatchSelect() {
   if (bar) bar.style.display = 'none';
 }
 
-function batchDeleteManuals() {
-  if (!guardAdmin()) return;
-  const checks = document.querySelectorAll('.manual-checkbox:checked');
-  if (checks.length === 0) return;
-  const keys = Array.from(checks).map(c => c.dataset.key);
-  const names = keys.map(k => {
-    const m = getManualByKey(k);
-    return m?.name || k;
-  });
-  if (!confirm(`确定删除以下 ${keys.length} 个说明书吗？\n\n${names.join('、')}\n\n（内置说明书仅清除用户修改）`)) return;
-  
-  let customs = loadCustomManuals();
-  const overrides = loadManualOverrides();
-  const catMap = getFullCategoryMap();
-  
-  keys.forEach(key => {
-    if (key.startsWith('custom_')) {
-      customs = customs.filter(c => c.key !== key);
-      delete catMap[key];
-    } else {
-      delete overrides[key];
-    }
-  });
-  
-  saveCustomManuals(customs);
-  saveManualOverrides(overrides);
-  saveManualCategoryMap(catMap);
-  renderOfficialList();
-  showToast(`✅ 已处理 ${keys.length} 项`);
 }
 
 function filterOfficialList() {
@@ -3323,7 +3262,7 @@ const _origSaveUsers = saveUsers;
 saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.15'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.16'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
