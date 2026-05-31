@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.18</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.19</span>
   </div>
 </div>
 <div class="tabs">
@@ -2469,7 +2469,6 @@ function cancelBatchSelect() {
   if (bar) bar.style.display = 'none';
 }
 
-}
 
 function filterOfficialList() {
   const q = document.getElementById('officialSearch').value.toLowerCase();
@@ -3263,7 +3262,7 @@ const _origSaveUsers = saveUsers;
 saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.18'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.19'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
