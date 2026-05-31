@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.26</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.27</span>
   </div>
 </div>
 <div class="tabs">
@@ -1863,7 +1863,7 @@ function processSinglePaste() {
     renderOfficialList();
     showToast('✅ 说明书已更新');
   } else {
-    showToast('⚠️ 未能识别说明书结构，请确保包含【】或[]标注的标题');
+    showToast('⚠️ 未能识别说明书结构，请确保包含【】标注的标题');
   }
 }
 // ===== Parse manual text from uploaded file =====
@@ -2137,7 +2137,7 @@ function parseManualText(text, filename) {
   // Parse by 【】 and [] brackets - each bracketed text is a section title,
   // everything until next bracket is the content
   const sections = {};
-  const regex = /[【\[]([^】\]]+)[】\]]/g;
+  const regex = /【([^】]+)】/g;
   const matches = [];
   let m;
   while ((m = regex.exec(text)) !== null) {
@@ -2149,7 +2149,7 @@ function parseManualText(text, filename) {
     let nextBracket = text.length;
     if (i + 1 < matches.length) {
       const remaining = text.substring(start);
-      const nextMatch = remaining.search(/[【\[]/);
+      const nextMatch = remaining.search(/【/);
       if (nextMatch >= 0) nextBracket = start + nextMatch;
     }
     const content = text.substring(start, nextBracket).replace(/^[：:]+\s*/, '').trim();
@@ -2166,7 +2166,7 @@ function parseMultipleManuals(text, filename) {
   
   // Split by "药品名称" markers (【药品名称】 or 药品名称：)
   const blocks = [];
-  const splitRegex = /(?:^|\n)(?=[【\[]?药品名称[】\]:：])/g;
+  const splitRegex = /(?:^|\n)(?=【?药品名称[】:：])/g;
   const parts = text.split(splitRegex).filter(p => p.trim());
   
   if (parts.length === 0) {
@@ -2175,7 +2175,7 @@ function parseMultipleManuals(text, filename) {
     if (parsed) {
       // Try to find drug name from first 【】 or [] bracket, or from first line
       let drugName = filename.replace(/\.(docx?|xlsx?|txt|pdf|csv)$/i, '').trim();
-      const firstNameMatch = text.match(/^[【\[]([^】\]]+)[】\]]/);
+  const firstNameMatch = text.match(/^【([^】]+)】/);
       if (firstNameMatch) drugName = firstNameMatch[1].replace(/^药品名称[：:】\]]\s*/,'').trim();
       return [{ name: drugName, ...parsed }];
     }
@@ -2188,7 +2188,7 @@ function parseMultipleManuals(text, filename) {
     const nameMatch = part.match(/药品名称[】\]:：]\s*(\S[^\n【\[]*)/);
     if (nameMatch) name = nameMatch[1].trim();
     if (!name) {
-      const brMatch = part.match(/^[【\[]([^】\]]+)[】\]]/);
+  const brMatch = part.match(/^【([^】]+)】/);
       if (brMatch) name = brMatch[1].replace(/^药品名称[：:]/,'').trim();
     }
     if (!name) {
@@ -2604,7 +2604,7 @@ function processManualPaste() {
     renderCategoryTabs(); renderOfficialList();
   } else {
     resultDiv.innerHTML = `<div style="background:var(--danger-light);padding:12px;border-radius:8px;font-size:13px;">
-      ⚠️ 未能识别药品说明书结构。请确保文本包含【】或[]标注的标题。
+      ⚠️ 未能识别药品说明书结构。请确保文本包含【】标注的标题。
     </div>`;
   }
 }
@@ -3226,7 +3226,7 @@ const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.26'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.27'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
