@@ -453,7 +453,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.16</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.17</span>
   </div>
 </div>
 <div class="tabs">
@@ -588,29 +588,33 @@ function doLogin() {
   const password = document.getElementById('loginPass').value;
   const errEl = document.getElementById('loginError');
   if (!username || !password) { errEl.style.display='block'; errEl.textContent='请输入用户名和密码'; return; }
-  // First sync from cloud to get latest user list, then validate
   errEl.style.display='none';
+  
+  // Try local users first
+  function validateAndEnter(users) {
+    const user = users.find(u => u.username === username && u.password === password);
+    if (!user) return false;
+    currentUser = { username: user.username, role: user.role, displayName: user.displayName };
+    localStorage.setItem('nurse_current_user', JSON.stringify(currentUser));
+    document.getElementById('loginScreen').style.display = 'none';
+    return true;
+  }
+  
+  // First try local
+  if (validateAndEnter(loadUsers())) {
+    CloudSync.init().then(() => { updateUserBadge(); applyPermissions(); init(); });
+    return;
+  }
+  
+  // Local failed, try sync from cloud first then retry
   CloudSync.init().then(() => {
-    const users = loadUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (!user) { errEl.style.display='block'; errEl.textContent='用户名或密码错误'; return; }
-    currentUser = { username: user.username, role: user.role, displayName: user.displayName };
-    localStorage.setItem('nurse_current_user', JSON.stringify(currentUser));
-    document.getElementById('loginScreen').style.display = 'none';
-    updateUserBadge();
-    applyPermissions();
-    init();
+    if (validateAndEnter(loadUsers())) {
+      updateUserBadge(); applyPermissions(); init();
+    } else {
+      errEl.style.display='block'; errEl.textContent='用户名或密码错误';
+    }
   }).catch(() => {
-    // Cloud failed, try local users
-    const users = loadUsers();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (!user) { errEl.style.display='block'; errEl.textContent='用户名或密码错误'; return; }
-    currentUser = { username: user.username, role: user.role, displayName: user.displayName };
-    localStorage.setItem('nurse_current_user', JSON.stringify(currentUser));
-    document.getElementById('loginScreen').style.display = 'none';
-    updateUserBadge();
-    applyPermissions();
-    init();
+    errEl.style.display='block'; errEl.textContent='用户名或密码错误';
   });
 }
 
@@ -3262,7 +3266,7 @@ const _origSaveUsers = saveUsers;
 saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.16'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.17'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
