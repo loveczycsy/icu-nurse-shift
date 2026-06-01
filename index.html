@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.34</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.35</span>
   </div>
 </div>
 <div class="tabs">
@@ -491,7 +491,7 @@ body {
   </div>
   <!-- Medicine Base -->
   <div class="page" id="page-medicine">
-    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表<span style="flex:1"></span><button id="medManageBtn" class="btn btn-outline btn-sm" onclick="showMedicineManager()" style="display:none;">⚙️ 管理药品</button></div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表<span style="flex:1"></span><button id="rebuildTrackerBtn" class="btn btn-outline btn-sm" onclick="rebuildTrackerFromHistory()" style="margin-right:6px;font-size:11px;">🔄 重建溯源</button><button id="medManageBtn" class="btn btn-outline btn-sm" onclick="showMedicineManager()" style="display:none;">⚙️ 管理药品</button></div>
       <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="medSearch" placeholder="搜索药品名称..." oninput="filterMedicines()"></div>
       <div style="overflow-x:auto;"><table class="medicine-table" id="medicineTable"><thead><tr>
         <th>序号</th><th>药品名称</th><th>规格</th><th>包装</th><th>单位</th><th>基数</th><th>状态</th><th>说明书</th>
@@ -1650,9 +1650,39 @@ function toggleMedDetail(medId, event) {
 
 function renderMedicineTable() {
   const tracker = loadMissingTracker();
+  // Build a name-based index to match tracker records to medicines
+  // This fixes broken medicineId references from old ID renumbering
+  const medByName = new Map();
+  MEDICINES.forEach(m => medByName.set(m.name, m));
+  // Re-index tracker records: if medicineId doesn't match, fix by name
+  let needSave = false;
+  tracker.forEach(r => {
+    if (!r.medicineId && !r.medicineName) return;
+    const med = MEDICINES.find(m => m.id == r.medicineId);
+    if (med && med.name === r.medicineName) return; // ID matches name, OK
+    // ID mismatch or no match — try to fix by name
+    if (r.medicineName) {
+      const correctMed = medByName.get(r.medicineName);
+      if (correctMed && correctMed.id != r.medicineId) {
+        r.medicineId = correctMed.id;
+        needSave = true;
+      }
+    } else {
+      // No medicineName — try to find by ID alone and set the name
+      if (med) {
+        r.medicineName = med.name;
+        needSave = true;
+      }
+    }
+  });
+  if (needSave) {
+    saveMissingTracker(tracker);
+    console.log('🔧 Fixed tracker medicineId references during render');
+  }
+  
   let rows = '';
   MEDICINES.forEach(m => {
-    const records = tracker.filter(r => r.medicineId == m.id);
+    const records = tracker.filter(r => r.medicineId == m.id || r.medicineName === m.name);
     const unresolved = records.filter(r => !r.resolved);
     const missing = unresolved.reduce((sum, r) => sum + (r.quantity || 1), 0);
     const actual = m.base - missing;
@@ -1711,6 +1741,52 @@ function renderMedicineTable() {
   });
   document.getElementById('medicineBody').innerHTML = rows;
 }
+// Rebuild missing tracker from all shift history
+function rebuildTrackerFromHistory() {
+  if (!confirm('将从所有交班记录重新构建缺药溯源数据。\n\n这将清除现有溯源记录并从交班历史重建。确定继续吗？')) return;
+  const tracker = [];
+  const keys = Object.keys(shiftData);
+  let rebuilt = 0;
+  keys.forEach(key => {
+    const d = shiftData[key];
+    if (!d || !d.missing || d.missing.length === 0) return;
+    const keyParts = key.split('_');
+    const datePart = keyParts[0];
+    const shiftPart = keyParts.slice(1).join('_');
+    d.missing.forEach(m => {
+      // Try to find medicine by ID first, then by name
+      let med = MEDICINES.find(med => med.id == m.medicineId);
+      if (!med && m.medicineName) med = MEDICINES.find(med => med.name === m.medicineName);
+      // Also try matching the saved entry's medicineName with current medicines
+      if (!med && m.medicineId) {
+        // The medicineId might refer to a deleted/renumbered medicine - try name matching
+        const oldMed = DEFAULT_MEDICINES.find(dm => dm.id == m.medicineId);
+        if (oldMed) med = MEDICINES.find(med => med.name === oldMed.name);
+      }
+      if (med || m.medicineId) {
+        tracker.push({
+          id: 'mt_rebuild_' + Date.now() + '_' + Math.random().toString(36).substr(2,6),
+          medicineId: med ? med.id : m.medicineId,
+          medicineName: med ? med.name : (m.medicineName || ''),
+          quantity: m.quantity || 1,
+          reason: m.reason || '',
+          note: m.note || '',
+          sourceDate: datePart,
+          sourceShift: shiftPart,
+          sourcePersonnel: (d.personnel || []).join('、'),
+          resolved: false,
+          resolvedAt: null,
+          createdAt: new Date().toISOString()
+        });
+        rebuilt++;
+      }
+    });
+  });
+  saveMissingTracker(tracker);
+  renderMedicineTable();
+  showToast('✅ 已从' + keys.length + '条交班记录重建' + rebuilt + '条溯源记录');
+}
+
 function filterMedicines() {
   const q = document.getElementById('medSearch').value.toLowerCase();
   document.querySelectorAll('#medicineBody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
@@ -3409,7 +3485,7 @@ const _origSaveMedicines = saveMedicines;
 saveMedicines = function(meds) { _origSaveMedicines(meds); CloudSync.push('nurse_medicines'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.34'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.35'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
