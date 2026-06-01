@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.32</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.34</span>
   </div>
 </div>
 <div class="tabs">
@@ -860,9 +860,8 @@ function saveMedicines(meds) {
 // Repair broken tracker records: if medicineId doesn't match medicineName,
 // find the correct medicine by name and fix the ID
 function repairTrackerIds() {
-  if (localStorage.getItem('nurse_tracker_ids_repaired_v2')) return;
   const tracker = loadMissingTracker();
-  if (!tracker || tracker.length === 0) { localStorage.setItem('nurse_tracker_ids_repaired_v2', '1'); return; }
+  if (!tracker || tracker.length === 0) return;
   let fixed = 0;
   tracker.forEach(r => {
     if (!r.medicineId || !r.medicineName) return;
@@ -880,11 +879,9 @@ function repairTrackerIds() {
     saveMissingTracker(tracker);
     console.log(`🔧 Repaired ${fixed} tracker records with mismatched medicineId`);
   }
-  localStorage.setItem('nurse_tracker_ids_repaired_v2', '1');
 }
 
 let MEDICINES = loadMedicines();
-repairTrackerIds();
 
 const PERSONNEL = [
 "杨浩","王邦涛","杨蜜","胡威","戴永恩","李东林","谢小燕","陈思雨",
@@ -3237,6 +3234,10 @@ const CloudSync = {
         loadMissingTracker();
         // Reload medicines from cloud data
         MEDICINES = loadMedicines();
+        // Repair tracker IDs after cloud data loaded (fixes ID renumbering bug)
+        repairTrackerIds();
+        // Re-render with repaired data
+        renderMedicineTable();
       }
     } catch(e) {
       console.error('☁️ Pull failed:', e.message);
