@@ -856,7 +856,35 @@ function saveMedicines(meds) {
   localStorage.setItem('nurse_medicines', JSON.stringify(meds));
   if (typeof CloudSync !== 'undefined' && CloudSync.enabled) CloudSync.push('nurse_medicines');
 }
+
+// Repair broken tracker records: if medicineId doesn't match medicineName,
+// find the correct medicine by name and fix the ID
+function repairTrackerIds() {
+  if (localStorage.getItem('nurse_tracker_ids_repaired_v2')) return;
+  const tracker = loadMissingTracker();
+  if (!tracker || tracker.length === 0) { localStorage.setItem('nurse_tracker_ids_repaired_v2', '1'); return; }
+  let fixed = 0;
+  tracker.forEach(r => {
+    if (!r.medicineId || !r.medicineName) return;
+    const med = MEDICINES.find(m => m.id == r.medicineId);
+    // If ID doesn't match name, try to find correct medicine by name
+    if (!med || med.name !== r.medicineName) {
+      const correctMed = MEDICINES.find(m => m.name === r.medicineName);
+      if (correctMed) {
+        r.medicineId = correctMed.id;
+        fixed++;
+      }
+    }
+  });
+  if (fixed > 0) {
+    saveMissingTracker(tracker);
+    console.log(`🔧 Repaired ${fixed} tracker records with mismatched medicineId`);
+  }
+  localStorage.setItem('nurse_tracker_ids_repaired_v2', '1');
+}
+
 let MEDICINES = loadMedicines();
+repairTrackerIds();
 
 const PERSONNEL = [
 "杨浩","王邦涛","杨蜜","胡威","戴永恩","李东林","谢小燕","陈思雨",
@@ -1757,8 +1785,22 @@ function saveMedicineChanges() {
     showToast('⚠️ 药品名称不能为空，请检查后重试');
     return;
   }
-  // Re-assign sequential IDs
-  _medManageList.forEach((m, idx) => { m.id = idx + 1; });
+  // DO NOT re-assign IDs — keep original IDs to preserve tracker/manual references
+  // (Renumbering breaks missing tracker medicineId, OFFICIAL_MANUALS matchId, etc.)
+  
+  // Update medicine names in tracker records if names were edited
+  const tracker = loadMissingTracker();
+  let trackerChanged = false;
+  _medManageList.forEach(m => {
+    tracker.forEach(r => {
+      if (r.medicineId == m.id && r.medicineName !== m.name) {
+        r.medicineName = m.name;
+        trackerChanged = true;
+      }
+    });
+  });
+  if (trackerChanged) saveMissingTracker(tracker);
+  
   MEDICINES = JSON.parse(JSON.stringify(_medManageList));
   saveMedicines(MEDICINES);
   renderMedicineTable();
@@ -3366,7 +3408,7 @@ const _origSaveMedicines = saveMedicines;
 saveMedicines = function(meds) { _origSaveMedicines(meds); CloudSync.push('nurse_medicines'); };
 
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.33'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.34'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
