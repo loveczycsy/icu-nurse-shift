@@ -456,7 +456,7 @@ body {
       <div style="border-top:1px solid #e8eaed;"></div>
       <div onclick="doLogout()" style="padding:10px 16px;font-size:13px;color:#d93025;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fce8e6'" onmouseout="this.style.background='white'">🚪 退出登录</div>
     </div>
-    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.35</span>
+    <span style="font-size:10px;opacity:0.5;margin-left:4px;">v3.32</span>
   </div>
 </div>
 <div class="tabs">
@@ -491,8 +491,8 @@ body {
   </div>
   <!-- Medicine Base -->
   <div class="page" id="page-medicine">
-    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表<span style="flex:1"></span><button id="rebuildTrackerBtn" class="btn btn-outline btn-sm" onclick="rebuildTrackerFromHistory()" style="margin-right:6px;font-size:11px;">🔄 重建溯源</button><button id="medManageBtn" class="btn btn-outline btn-sm" onclick="showMedicineManager()" style="display:none;">⚙️ 管理药品</button></div>
-      <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="medSearch" placeholder="搜索药品名称..." oninput="filterMedicines()"></div>
+    <div class="card"><div class="card-title"><span class="card-title-icon">💉</span>病区备用药品基数表</div>
+      <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="medSearch" placeholder="搜索药品名称..." oninput="filterMedicines()"><button id="rebuildTraceBtn" class="btn btn-outline btn-sm" onclick="rebuildMissingTracker()" style="margin-left:auto;white-space:nowrap;font-size:12px;">🔄 重建溯源</button></div>
       <div style="overflow-x:auto;"><table class="medicine-table" id="medicineTable"><thead><tr>
         <th>序号</th><th>药品名称</th><th>规格</th><th>包装</th><th>单位</th><th>基数</th><th>状态</th><th>说明书</th>
       </tr></thead><tbody id="medicineBody"></tbody></table></div>
@@ -564,18 +564,6 @@ body {
   <div class="modal" style="max-width:520px;">
     <div class="modal-header"><div><div class="modal-title">🌐 在线部署配置</div><div class="modal-subtitle">配置Supabase云数据库，实现多人实时在线</div></div><button class="modal-close" onclick="closeSupabaseModal()">✕</button></div>
     <div class="modal-body" id="supabaseModalBody"></div>
-  </div>
-</div>
-<!-- Modal: Medicine Manager (Admin Only) -->
-<div class="modal-overlay" id="medManageModal">
-  <div class="modal" style="max-width:700px;">
-    <div class="modal-header"><div><div class="modal-title">⚙️ 药品基数管理</div><div class="modal-subtitle">添加、编辑或删除药品品种与基数（仅管理员可操作）</div></div><button class="modal-close" onclick="closeMedManager()">✕</button></div>
-    <div class="modal-body" id="medManageBody"></div>
-    <div class="modal-footer" id="medManageFooter" style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-outline btn-sm" onclick="closeMedManager()">取消</button>
-      <button class="btn btn-primary btn-sm" onclick="addMedicineRow()">➕ 添加药品</button>
-      <button class="btn btn-primary btn-sm" onclick="saveMedicineChanges()">💾 保存更改</button>
-    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -685,7 +673,7 @@ document.addEventListener('click', function(e) {
 
 function applyPermissions() {
   // Admin-only elements: hide for normal users
-  const adminIds = ['bulkAddBtn', 'catManageBtn', 'medManageBtn'];
+  const adminIds = ['bulkAddBtn', 'catManageBtn', 'rebuildTraceBtn'];
   adminIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = isAdmin() ? '' : 'none';
@@ -796,7 +784,7 @@ function guardAdmin(action) {
   return true;
 }
 
-const DEFAULT_MEDICINES = [
+const MEDICINES = [
 { id:1, name:"10%氯化钾注射液", spec:"10ml:1g", pkg:"60支/盒", unit:"支", base:20 },
   { id:2, name:"50%葡萄糖注射液", spec:"20ml:10g", pkg:"5支/盒", unit:"支", base:5 },
   { id:3, name:"盐酸利多卡因胶浆", spec:"20g:0.4g/支", pkg:"1支/盒", unit:"支", base:5 },
@@ -840,49 +828,6 @@ const DEFAULT_MEDICINES = [
   { id:41, name:"喷他佐辛注射液", spec:"1ml:30mg", pkg:"5支/盒", unit:"支", base:5 },
   { id:42, name:"胰岛素注射液", spec:"10ml:400IU", pkg:"2支/盒", unit:"瓶", base:5 },
 ];
-
-// Load medicines: custom from localStorage, or fallback to defaults
-function loadMedicines() {
-  try {
-    const d = localStorage.getItem('nurse_medicines');
-    if (d) {
-      const custom = JSON.parse(d);
-      if (Array.isArray(custom) && custom.length > 0) return custom;
-    }
-  } catch(e) {}
-  return JSON.parse(JSON.stringify(DEFAULT_MEDICINES));
-}
-function saveMedicines(meds) {
-  localStorage.setItem('nurse_medicines', JSON.stringify(meds));
-  if (typeof CloudSync !== 'undefined' && CloudSync.enabled) CloudSync.push('nurse_medicines');
-}
-
-// Repair broken tracker records: if medicineId doesn't match medicineName,
-// find the correct medicine by name and fix the ID
-function repairTrackerIds() {
-  const tracker = loadMissingTracker();
-  if (!tracker || tracker.length === 0) return;
-  let fixed = 0;
-  tracker.forEach(r => {
-    if (!r.medicineId || !r.medicineName) return;
-    const med = MEDICINES.find(m => m.id == r.medicineId);
-    // If ID doesn't match name, try to find correct medicine by name
-    if (!med || med.name !== r.medicineName) {
-      const correctMed = MEDICINES.find(m => m.name === r.medicineName);
-      if (correctMed) {
-        r.medicineId = correctMed.id;
-        fixed++;
-      }
-    }
-  });
-  if (fixed > 0) {
-    saveMissingTracker(tracker);
-    console.log(`🔧 Repaired ${fixed} tracker records with mismatched medicineId`);
-  }
-}
-
-let MEDICINES = loadMedicines();
-
 const PERSONNEL = [
 "杨浩","王邦涛","杨蜜","胡威","戴永恩","李东林","谢小燕","陈思雨",
   "张露","卢苗","周一平","陈炜华","陈世龙","李茜","周欢","许佳斗",
@@ -1513,7 +1458,10 @@ function updateMissing(id, field, value) { const entry = missingEntries.find(e =
 function autoSaveCurrentShift() {
   const key = getShiftKey();
   const data = { personnel: Array.from(selectedPersonnel), personnel2: Array.from(selectedPersonnel2), missing: missingEntries.map(e => ({...e})), note: document.getElementById('shiftNote')?.value || '', shift: currentShift };
-  if (data.personnel.length > 0 || data.personnel2.length > 0 || data.missing.length > 0 || data.note) { shiftData[key] = data; saveShiftData(); }
+  if (data.personnel.length > 0 || data.personnel2.length > 0 || data.missing.length > 0 || data.note) {
+    shiftData[key] = data; saveShiftData();
+    addMissingToTracker(key, Array.from(selectedPersonnel), missingEntries);
+  }
 }
 function saveShift() {
   const key = getShiftKey();
@@ -1578,13 +1526,22 @@ function addMissingToTracker(shiftKey, personnel, missing) {
   const keyParts = shiftKey.split('_');
   const datePart = keyParts[0];
   const shiftPart = keyParts.slice(1).join('_');
-  // Remove previous records from this same shift (re-save)
+  // Preserve resolved records from this same shift (re-save should NOT lose them)
+  const preservedResolved = tracker.filter(r => r.sourceDate === datePart && r.sourceShift === shiftPart && r.resolved);
+  // Remove all previous records from this same shift
   for (let i = tracker.length - 1; i >= 0; i--) {
     if (tracker[i].sourceDate === datePart && tracker[i].sourceShift === shiftPart) tracker.splice(i, 1);
   }
-  // Add new records
+  // Re-add preserved resolved records
+  preservedResolved.forEach(r => tracker.push(r));
+  // Add new unresolved records
   missing.forEach(m => {
     if (m.medicineId) {
+      // Skip if this exact record already exists (same medicineId + reason + quantity, already resolved)
+      const alreadyExists = preservedResolved.some(r =>
+        r.medicineId == m.medicineId && r.reason === (m.reason||'') && r.quantity === (m.quantity||1)
+      );
+      if (alreadyExists) return;
       const med = MEDICINES.find(med => med.id == m.medicineId);
       tracker.push({
         id: 'mt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6),
@@ -1640,6 +1597,52 @@ function deleteMissingRecord(trackerId) {
   renderMedicineTable();
 }
 
+// Rebuild missing tracker from shift history, preserving already-resolved records
+function rebuildMissingTracker() {
+  if (!guardAdmin()) return;
+  if (!confirm('⚠️ 将从所有交班历史中重新生成缺药追踪记录。\n\n已处理的记录不会被覆盖，只会补充缺失的记录。\n\n确定重建？')) return;
+  const tracker = loadMissingTracker();
+  // Keep all resolved records as-is
+  const resolvedMap = new Map(); // key: medicineId|sourceDate|sourceShift|reason|quantity -> record
+  tracker.filter(r => r.resolved).forEach(r => {
+    const k = `${r.medicineId}|${r.sourceDate}|${r.sourceShift}|${r.reason}|${r.quantity}`;
+    resolvedMap.set(k, r);
+  });
+  const newTracker = [];
+  const seen = new Set(); // dedup key
+  // First, add all resolved records
+  resolvedMap.forEach((r, k) => { newTracker.push(r); seen.add(k); });
+  // Then, scan all shift history and add unresolved records
+  Object.keys(shiftData).forEach(key => {
+    const d = shiftData[key];
+    if (d && d.missing && d.missing.length > 0) {
+      const keyParts = key.split('_');
+      const datePart = keyParts[0];
+      const shiftPart = keyParts.slice(1).join('_');
+      d.missing.forEach(m => {
+        if (m.medicineId) {
+          const k = `${m.medicineId}|${datePart}|${shiftPart}|${m.reason||''}|${m.quantity||1}`;
+          if (!seen.has(k)) {
+            seen.add(k);
+            const med = MEDICINES.find(med => med.id == m.medicineId);
+            newTracker.push({
+              id: 'mt_' + Date.now() + '_' + Math.random().toString(36).substr(2,6),
+              medicineId: m.medicineId, medicineName: med ? med.name : '',
+              quantity: m.quantity || 1, reason: m.reason || '', note: m.note || '',
+              sourceDate: datePart, sourceShift: shiftPart,
+              sourcePersonnel: (d.personnel || []).join('、'),
+              resolved: false, resolvedAt: null, createdAt: new Date().toISOString()
+            });
+          }
+        }
+      });
+    }
+  });
+  saveMissingTracker(newTracker);
+  renderMedicineTable();
+  showToast(`✅ 溯源重建完成：${newTracker.length}条记录（其中${resolvedMap.size}条已处理）`);
+}
+
 let expandedMedId = null;
 
 function toggleMedDetail(medId, event) {
@@ -1650,39 +1653,9 @@ function toggleMedDetail(medId, event) {
 
 function renderMedicineTable() {
   const tracker = loadMissingTracker();
-  // Build a name-based index to match tracker records to medicines
-  // This fixes broken medicineId references from old ID renumbering
-  const medByName = new Map();
-  MEDICINES.forEach(m => medByName.set(m.name, m));
-  // Re-index tracker records: if medicineId doesn't match, fix by name
-  let needSave = false;
-  tracker.forEach(r => {
-    if (!r.medicineId && !r.medicineName) return;
-    const med = MEDICINES.find(m => m.id == r.medicineId);
-    if (med && med.name === r.medicineName) return; // ID matches name, OK
-    // ID mismatch or no match — try to fix by name
-    if (r.medicineName) {
-      const correctMed = medByName.get(r.medicineName);
-      if (correctMed && correctMed.id != r.medicineId) {
-        r.medicineId = correctMed.id;
-        needSave = true;
-      }
-    } else {
-      // No medicineName — try to find by ID alone and set the name
-      if (med) {
-        r.medicineName = med.name;
-        needSave = true;
-      }
-    }
-  });
-  if (needSave) {
-    saveMissingTracker(tracker);
-    console.log('🔧 Fixed tracker medicineId references during render');
-  }
-  
   let rows = '';
   MEDICINES.forEach(m => {
-    const records = tracker.filter(r => r.medicineId == m.id || r.medicineName === m.name);
+    const records = tracker.filter(r => r.medicineId == m.id);
     const unresolved = records.filter(r => !r.resolved);
     const missing = unresolved.reduce((sum, r) => sum + (r.quantity || 1), 0);
     const actual = m.base - missing;
@@ -1741,147 +1714,10 @@ function renderMedicineTable() {
   });
   document.getElementById('medicineBody').innerHTML = rows;
 }
-// Rebuild missing tracker from all shift history
-function rebuildTrackerFromHistory() {
-  if (!confirm('将从所有交班记录重新构建缺药溯源数据。\n\n这将清除现有溯源记录并从交班历史重建。确定继续吗？')) return;
-  const tracker = [];
-  const keys = Object.keys(shiftData);
-  let rebuilt = 0;
-  keys.forEach(key => {
-    const d = shiftData[key];
-    if (!d || !d.missing || d.missing.length === 0) return;
-    const keyParts = key.split('_');
-    const datePart = keyParts[0];
-    const shiftPart = keyParts.slice(1).join('_');
-    d.missing.forEach(m => {
-      // Try to find medicine by ID first, then by name
-      let med = MEDICINES.find(med => med.id == m.medicineId);
-      if (!med && m.medicineName) med = MEDICINES.find(med => med.name === m.medicineName);
-      // Also try matching the saved entry's medicineName with current medicines
-      if (!med && m.medicineId) {
-        // The medicineId might refer to a deleted/renumbered medicine - try name matching
-        const oldMed = DEFAULT_MEDICINES.find(dm => dm.id == m.medicineId);
-        if (oldMed) med = MEDICINES.find(med => med.name === oldMed.name);
-      }
-      if (med || m.medicineId) {
-        tracker.push({
-          id: 'mt_rebuild_' + Date.now() + '_' + Math.random().toString(36).substr(2,6),
-          medicineId: med ? med.id : m.medicineId,
-          medicineName: med ? med.name : (m.medicineName || ''),
-          quantity: m.quantity || 1,
-          reason: m.reason || '',
-          note: m.note || '',
-          sourceDate: datePart,
-          sourceShift: shiftPart,
-          sourcePersonnel: (d.personnel || []).join('、'),
-          resolved: false,
-          resolvedAt: null,
-          createdAt: new Date().toISOString()
-        });
-        rebuilt++;
-      }
-    });
-  });
-  saveMissingTracker(tracker);
-  renderMedicineTable();
-  showToast('✅ 已从' + keys.length + '条交班记录重建' + rebuilt + '条溯源记录');
-}
-
 function filterMedicines() {
   const q = document.getElementById('medSearch').value.toLowerCase();
   document.querySelectorAll('#medicineBody tr').forEach(row => { row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none'; });
 }
-
-// ===== Medicine Manager (Admin Only) =====
-let _medManageList = [];
-
-function showMedicineManager() {
-  if (!guardAdmin()) return;
-  _medManageList = JSON.parse(JSON.stringify(MEDICINES));
-  renderMedManageList();
-  document.getElementById('medManageModal').classList.add('show');
-}
-
-function closeMedManager() {
-  document.getElementById('medManageModal').classList.remove('show');
-}
-
-function renderMedManageList() {
-  let html = '<div style="margin-bottom:8px;color:var(--text-secondary);font-size:13px;">💡 双击单元格可直接编辑，删除药品后点"保存更改"生效</div>';
-  html += '<table class="medicine-table" style="font-size:13px;"><thead><tr>'
-    + '<th style="width:40px;">序号</th><th>药品名称</th><th>规格</th><th>包装</th><th style="width:50px;">单位</th><th style="width:60px;">基数</th><th style="width:50px;">操作</th>'
-    + '</tr></thead><tbody>';
-  _medManageList.forEach((m, idx) => {
-    html += '<tr data-idx="' + idx + '">'
-      + '<td>' + (idx + 1) + '</td>'
-      + '<td><input type="text" value="' + escHtml(m.name) + '" data-field="name" style="width:100%;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'name\',this.value)"></td>'
-      + '<td><input type="text" value="' + escHtml(m.spec) + '" data-field="spec" style="width:100%;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'spec\',this.value)"></td>'
-      + '<td><input type="text" value="' + escHtml(m.pkg) + '" data-field="pkg" style="width:100%;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'pkg\',this.value)"></td>'
-      + '<td><input type="text" value="' + escHtml(m.unit) + '" data-field="unit" style="width:50px;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;text-align:center;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'unit\',this.value)"></td>'
-      + '<td><input type="number" value="' + m.base + '" data-field="base" min="0" style="width:60px;border:1px solid transparent;padding:2px 4px;border-radius:4px;font-size:13px;text-align:center;" onfocus="this.style.borderColor=\'var(--primary)\'" onblur="this.style.borderColor=\'transparent\';_updateMedField(' + idx + ',\'base\',parseInt(this.value)||0)"></td>'
-      + '<td><button class="detail-btn delete-detail-btn" onclick="_removeMedRow(' + idx + ')" style="padding:2px 8px;">🗑️</button></td>'
-      + '</tr>';
-  });
-  html += '</tbody></table>';
-  document.getElementById('medManageBody').innerHTML = html;
-}
-
-function _updateMedField(idx, field, value) {
-  if (_medManageList[idx]) _medManageList[idx][field] = value;
-}
-
-function _removeMedRow(idx) {
-  const m = _medManageList[idx];
-  if (!m) return;
-  if (confirm('确定删除药品"' + m.name + '"？\n删除后相关缺药溯源记录仍会保留，但药品将不再显示在基数表中。')) {
-    _medManageList.splice(idx, 1);
-    renderMedManageList();
-  }
-}
-
-function addMedicineRow() {
-  const newId = _medManageList.length > 0 ? Math.max(..._medManageList.map(m => m.id)) + 1 : 1;
-  _medManageList.push({ id: newId, name: '', spec: '', pkg: '', unit: '支', base: 5 });
-  renderMedManageList();
-  // Focus the name input of the last row
-  const tbody = document.querySelector('#medManageBody tbody');
-  if (tbody) {
-    const lastRow = tbody.lastElementChild;
-    if (lastRow) { const nameInput = lastRow.querySelector('input[data-field="name"]'); if (nameInput) nameInput.focus(); }
-  }
-}
-
-function saveMedicineChanges() {
-  // Validate: no empty names
-  const emptyNames = _medManageList.filter(m => !m.name.trim());
-  if (emptyNames.length > 0) {
-    showToast('⚠️ 药品名称不能为空，请检查后重试');
-    return;
-  }
-  // DO NOT re-assign IDs — keep original IDs to preserve tracker/manual references
-  // (Renumbering breaks missing tracker medicineId, OFFICIAL_MANUALS matchId, etc.)
-  
-  // Update medicine names in tracker records if names were edited
-  const tracker = loadMissingTracker();
-  let trackerChanged = false;
-  _medManageList.forEach(m => {
-    tracker.forEach(r => {
-      if (r.medicineId == m.id && r.medicineName !== m.name) {
-        r.medicineName = m.name;
-        trackerChanged = true;
-      }
-    });
-  });
-  if (trackerChanged) saveMissingTracker(tracker);
-  
-  MEDICINES = JSON.parse(JSON.stringify(_medManageList));
-  saveMedicines(MEDICINES);
-  renderMedicineTable();
-  closeMedManager();
-  showToast('✅ 药品基数已更新，共' + MEDICINES.length + '种药品');
-}
-
-document.getElementById('medManageModal').addEventListener('click', function(e) { if (e.target === this) closeMedManager(); });
 
 // ===== Get Manual Data by Key =====
 function getManualByKey(key) {
@@ -2956,8 +2792,7 @@ const SYNC_STORAGE_KEYS = [
   'nurse_missing_tracker',
   'nurse_users',
   'nurse_missing_tracker_migrated',
-  'nurse_deleted_manuals',
-  'nurse_medicines'
+  'nurse_deleted_manuals'
 ];
 const WEBDAV_BASE = 'https://dav.jianguoyun.com/dav/';
 const SYNC_FILE_NAME = 'icu-nurse-shift-data.json';
@@ -3308,12 +3143,6 @@ const CloudSync = {
         console.log('☁️ Pulled', data.length, 'records from cloud');
         // Deduplicate missing tracker after pull
         loadMissingTracker();
-        // Reload medicines from cloud data
-        MEDICINES = loadMedicines();
-        // Repair tracker IDs after cloud data loaded (fixes ID renumbering bug)
-        repairTrackerIds();
-        // Re-render with repaired data
-        renderMedicineTable();
       }
     } catch(e) {
       console.error('☁️ Pull failed:', e.message);
@@ -3360,7 +3189,6 @@ const CloudSync = {
             // Refresh affected views
             if (row.key === 'nurse_shift_data') { loadShiftData(); renderHistory(); renderMedicineTable(); if (document.getElementById('page-shift').classList.contains('active')) loadCurrentShift(); }
             else if (row.key === 'nurse_missing_tracker') { loadMissingTracker(); renderMedicineTable(); }
-            else if (row.key === 'nurse_medicines') { MEDICINES = loadMedicines(); renderMedicineTable(); }
             else if (row.key === 'nurse_custom_manuals' || row.key === 'nurse_manual_overrides' || row.key === 'nurse_manual_cat_map' || row.key === 'nurse_manual_categories') { renderCategoryTabs(); renderOfficialList(); }
             else if (row.key === 'nurse_users') { /* no immediate action needed */ }
             console.log('☁️ Real-time update:', row.key);
@@ -3481,11 +3309,8 @@ saveUsers = function(users) { _origSaveUsers(users); CloudSync.push('nurse_users
 const _origSaveDeleted = saveDeletedManuals;
 saveDeletedManuals = function(list) { _origSaveDeleted(list); CloudSync.push('nurse_deleted_manuals'); };
 
-const _origSaveMedicines = saveMedicines;
-saveMedicines = function(meds) { _origSaveMedicines(meds); CloudSync.push('nurse_medicines'); };
-
 // Boot: auto-login if session exists, otherwise show login screen
-try { tryAutoLogin(); console.log('✅ 系统启动 v3.35'); } catch(e) { console.error('❌ 启动失败:', e); }
+try { tryAutoLogin(); console.log('✅ 系统启动 v3.33'); } catch(e) { console.error('❌ 启动失败:', e); }
 </script>
 </body>
 </html>
